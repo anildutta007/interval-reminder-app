@@ -40,6 +40,14 @@
   <!-- Canvas Confetti for Task Completion Celebration -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
+  <!-- PWA Manifest & Mobile Web App Meta -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0ea5e9">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PulseRemind">
+  <link rel="apple-touch-icon" href="/static/icon-192.png">
+
   <!-- Custom CSS -->
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="stylesheet" href="styles.css">
@@ -210,6 +218,12 @@
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span>Background Service: Active</span>
         </div>
+
+        <!-- Desk Mode / Screen Keep Awake (For Mobile Phone & Desktop Stand) -->
+        <button id="deskModeBtn" onclick="window.app.toggleWakeLock()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-slate-300 border border-slate-700 hover:border-slate-500 transition cursor-pointer" title="Keep Screen Awake (Desk Mode). Keeps your mobile phone screen on while on your desk stand.">
+          <span id="deskModeIcon">📱</span>
+          <span id="deskModeLabel" class="hidden sm:inline">Desk Mode</span>
+        </button>
         
         <!-- Audio State Button -->
         <button id="audioStatusBtn" class="flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-700/50 hover:bg-emerald-800/50 transition cursor-pointer">

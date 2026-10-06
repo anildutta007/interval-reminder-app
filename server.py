@@ -670,8 +670,46 @@ async def serve_index():
         return FileResponse(index_file)
     return JSONResponse({"status": "Frontend not yet generated"})
 
+@app.get("/manifest.json")
+async def serve_manifest():
+    manifest_file = os.path.join(BASE_DIR, "manifest.json")
+    if os.path.exists(manifest_file):
+        return FileResponse(manifest_file, media_type="application/manifest+json")
+    return JSONResponse({})
+
+@app.get("/sw.js")
+async def serve_sw():
+    sw_file = os.path.join(BASE_DIR, "sw.js")
+    if os.path.exists(sw_file):
+        return FileResponse(sw_file, media_type="application/javascript")
+    return JSONResponse({})
+
+@app.get("/icon-192.png")
+async def serve_icon_192():
+    icon_file = os.path.join(BASE_DIR, "icon-192.png")
+    if os.path.exists(icon_file):
+        return FileResponse(icon_file, media_type="image/png")
+    return JSONResponse({}, status_code=404)
+
+@app.get("/icon-512.png")
+async def serve_icon_512():
+    icon_file = os.path.join(BASE_DIR, "icon-512.png")
+    if os.path.exists(icon_file):
+        return FileResponse(icon_file, media_type="image/png")
+    return JSONResponse({}, status_code=404)
+
 # Mount static folder
 app.mount("/static", StaticFiles(directory=BASE_DIR), name="static")
+
+def get_local_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
 
 def open_browser(port: int):
     time.sleep(1.2)
@@ -684,11 +722,13 @@ def open_browser(port: int):
 
 if __name__ == "__main__":
     PORT = 8050
+    local_ip = get_local_ip()
     print("=" * 60)
     print("   PulseRemind - Interval Task & Habit Reminder Alarm Hub")
-    print(f"   Server running on http://127.0.0.1:{PORT}")
-    print("   Background Daemon: Active (Runs even when browser is closed)")
+    print(f"   PC Local URL:       http://127.0.0.1:{PORT}")
+    print(f"   Mobile Phone URL:   http://{local_ip}:{PORT}")
+    print("   Background Daemon:  Active (Runs even when browser is closed)")
     print("=" * 60)
     
     threading.Thread(target=open_browser, args=(PORT,), daemon=True).start()
-    uvicorn.run("server:app", host="127.0.0.1", port=PORT, reload=False)
+    uvicorn.run("server:app", host="0.0.0.0", port=PORT, reload=False)

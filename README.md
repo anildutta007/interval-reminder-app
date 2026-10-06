@@ -73,13 +73,19 @@ Double-click `run_reminder.bat` in `c:\Anil Google Projects\`:
 c:\Anil Google Projects\run_reminder.bat
 ```
 
-### Method 3: Standalone Browser Launch
-Open `index.html` directly in any modern browser.
+### Method 3: Mobile Phone Usage (iPhone / Android)
+You can open PulseRemind on any smartphone connected to the same Wi-Fi network:
+1. Find your PC's IP address (e.g. `http://192.168.0.80:8050`).
+2. Open Safari (iOS) or Chrome (Android) on your mobile phone and browse to `http://192.168.0.80:8050`.
+3. **Desk Mode (Screen Wake Lock)**: Tap the **"📱 Desk Mode"** button at the top header when keeping your phone on a charging stand or desk dock. This prevents the phone screen from sleeping and allows alarms and Hindi/English voice announcements to speak continuously!
+4. **Install as App (PWA)**: Tap **Share -> Add to Home Screen** (iOS) or **Install App** (Android) for full-screen native mobile experience.
+5. **PC + Phone Remote Hub**: Even if your phone screen turns off, the PC background daemon handles the audio/voice while your phone acts as a remote dashboard.
 
 ---
 
 ## 🛠️ Technology Stack
-- **Backend**: Python 3, FastAPI, Uvicorn, Pydantic
-- **Frontend**: HTML5, Modern ES6 JavaScript, Tailwind CSS (CDN), Web Audio API
+- **Backend**: Python 3, FastAPI, Uvicorn, Pydantic, Windows SAPI / Beep
+- **Frontend**: HTML5, Modern ES6 JavaScript, Tailwind CSS (CDN), Web Audio API, Web Speech API (`hi-IN`, `en-US`), Screen Wake Lock API
+- **Mobile**: Progressive Web App (PWA) Manifest, Service Worker (`sw.js`), Touch Haptics
 - **Animations**: CSS3 Glassmorphism, Keyframes, Canvas Confetti
 - **Storage**: Persistent JSON (`data/profiles.json`, `data/tasks.json`) + Client-side `localStorage` sync

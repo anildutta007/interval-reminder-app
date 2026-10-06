@@ -1085,6 +1085,8 @@ class PulseRemindApp {
     this.autoLockTimer = null;
     this.titleBlinkInterval = null;
     this.originalDocTitle = document.title;
+    this.wakeLock = null;
+    this.isDeskMode = false;
   }
 
   async init() {
@@ -1129,6 +1131,10 @@ class PulseRemindApp {
 
     // 9. Start Background Daemon Heartbeat
     this.startHeartbeatDaemon();
+
+    // 10. Register PWA Service Worker & Mobile Screen Wake Lock Handler
+    this.registerServiceWorker();
+    this.setupVisibilityWakeLock();
   }
 
   startHeartbeatDaemon() {
@@ -2271,6 +2277,87 @@ class PulseRemindApp {
     const newProfForm = document.getElementById('newProfileFormElement');
     if (newProfForm) {
       newProfForm.addEventListener('submit', (e) => this.submitCreateProfile(e));
+    }
+  }
+
+  // ==========================================
+  // MOBILE PWA & SCREEN WAKE LOCK (DESK MODE)
+  // ==========================================
+  registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => {
+          console.log('[PWA] Service Worker registered with scope:', reg.scope);
+        })
+        .catch(err => {
+          console.log('[PWA] Service Worker registration skipped/offline:', err);
+        });
+    }
+  }
+
+  setupVisibilityWakeLock() {
+    document.addEventListener('visibilitychange', async () => {
+      if (this.isDeskMode && document.visibilityState === 'visible' && !this.wakeLock) {
+        try {
+          if ('wakeLock' in navigator) {
+            this.wakeLock = await navigator.wakeLock.request('screen');
+            this.wakeLock.addEventListener('release', () => {
+              this.wakeLock = null;
+              if (!this.isDeskMode) this.updateWakeLockUI(false);
+            });
+            this.updateWakeLockUI(true);
+          }
+        } catch (e) {
+          console.warn('[WakeLock] Auto re-acquire failed:', e);
+        }
+      }
+    });
+  }
+
+  async toggleWakeLock() {
+    if (!('wakeLock' in navigator)) {
+      alert('Screen Wake Lock is not supported on this browser.\n\nTip: On iOS Safari or Android Chrome, add PulseRemind to your Home Screen (PWA) or set screen auto-lock to "Never" in device settings while resting on your desk stand.');
+      return;
+    }
+    if (this.wakeLock) {
+      try {
+        await this.wakeLock.release();
+      } catch (e) {}
+      this.wakeLock = null;
+      this.isDeskMode = false;
+      this.updateWakeLockUI(false);
+    } else {
+      try {
+        this.wakeLock = await navigator.wakeLock.request('screen');
+        this.isDeskMode = true;
+        this.wakeLock.addEventListener('release', () => {
+          this.wakeLock = null;
+          if (!this.isDeskMode) this.updateWakeLockUI(false);
+        });
+        this.updateWakeLockUI(true);
+      } catch (err) {
+        console.warn('[WakeLock] Request failed:', err);
+        this.isDeskMode = false;
+        this.updateWakeLockUI(false);
+      }
+    }
+  }
+
+  updateWakeLockUI(active) {
+    const btn = document.getElementById('deskModeBtn');
+    const label = document.getElementById('deskModeLabel');
+    const icon = document.getElementById('deskModeIcon');
+    if (!btn) return;
+    if (active) {
+      btn.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30 transition cursor-pointer shadow-sm shadow-amber-500/20";
+      if (label) label.textContent = "Desk Mode: ON";
+      if (icon) icon.textContent = "🔆";
+      btn.title = "Desk Mode Active: Mobile screen will stay awake so interval alarms and Hindi/English voice continue running without interruption.";
+    } else {
+      btn.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-slate-300 border border-slate-700 hover:border-slate-500 transition cursor-pointer";
+      if (label) label.textContent = "Desk Mode";
+      if (icon) icon.textContent = "📱";
+      btn.title = "Keep Screen Awake (Desk Mode). Keeps your mobile phone screen on while on your desk stand.";
     }
   }
 }

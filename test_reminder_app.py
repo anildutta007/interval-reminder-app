@@ -118,5 +118,21 @@ class TestPulseRemind(unittest.TestCase):
         self.assertEqual(res_cfg.status_code, 200)
         self.assertTrue(res_cfg.json()["reopenBrowserOnAlarm"])
 
+    def test_mobile_pwa_endpoints(self):
+        # 1. Manifest
+        res_m = self.client.get("/manifest.json")
+        self.assertEqual(res_m.status_code, 200)
+        self.assertEqual(res_m.json()["short_name"], "PulseRemind")
+
+        # 2. Service Worker
+        res_sw = self.client.get("/sw.js")
+        self.assertEqual(res_sw.status_code, 200)
+        self.assertIn("PulseRemind Mobile PWA", res_sw.text)
+
+        # 3. Mobile PWA Icons
+        res_i192 = self.client.get("/icon-192.png")
+        self.assertEqual(res_i192.status_code, 200)
+        self.assertEqual(res_i192.headers["content-type"], "image/png")
+
 if __name__ == "__main__":
     unittest.main()
