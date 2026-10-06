@@ -57,21 +57,14 @@ Plus quick 1-click templates for **👁️ 20-20-20 Eye Rest** and **🪑 Postur
 
 ## 🚀 How to Run
 
-### Method 1: Silent Background Daemon (Active Even When Browser is Closed)
-Double-click `start_background_reminder.bat` in the root `c:\Anil Google Projects\` folder:
-```cmd
-c:\Anil Google Projects\start_background_reminder.bat
-```
-- **Silent Background Execution**: Launches the Python server via `pythonw.exe` without any open terminal window.
-- **Works When Browser URL is Closed**: Even if you close the browser tab/URL, the Python background daemon continues monitoring your tasks, plays audio chimes on your PC, speaks reminders aloud in Hindi and English, and displays Windows desktop notifications!
-- **Auto-Reopens Web App on Alarm**: When an interval is reached, it automatically re-opens `http://127.0.0.1:8050` so you can click *"Done!"* or *"Snooze"* with one click.
-- **To stop the background service**: Double-click `stop_background_reminder.bat`.
-
-### Method 2: Standard Interactive Console Server
+### Quick Start
 Double-click `run_reminder.bat` in `c:\Anil Google Projects\`:
 ```cmd
 c:\Anil Google Projects\run_reminder.bat
 ```
+* Launches the local web server and automatically opens your browser to **`http://127.0.0.1:8050`**.
+* **Browser-Based Execution:** Simply keep the browser tab open while working. PulseRemind runs all interval timers, procedural Web Audio chimes, and spoken voice announcements directly in your browser.
+* You can pin the browser tab or keep it in the background while working in other apps — audio chimes and voice alerts will sound clearly when intervals are reached!
 
 ### Multi-User Profiles on PC
 Multiple people in your home can share the web app on your PC:
@@ -82,7 +75,7 @@ Multiple people in your home can share the web app on your PC:
 ---
 
 ## 🛠️ Technology Stack
-- **Backend**: Python 3, FastAPI, Uvicorn, Pydantic, Windows SAPI / Beep
+- **Backend**: Python 3, FastAPI, Uvicorn, Pydantic
 - **Frontend**: HTML5, Modern ES6 JavaScript, Tailwind CSS (CDN), Web Audio API, Web Speech API (`hi-IN`, `en-US`)
 - **Security & Multi-User**: Salted SHA-256 PIN hashing, Per-Profile task isolation
 - **Animations**: CSS3 Glassmorphism, Keyframes, Canvas Confetti

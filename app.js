@@ -1126,61 +1126,6 @@ class PulseRemindApp {
 
     // 8. Ask notification permission politely if not asked
     this.setupNotifications();
-
-    // 9. Start Background Daemon Heartbeat
-    this.startHeartbeatDaemon();
-  }
-
-  startHeartbeatDaemon() {
-    const sendBeat = async () => {
-      try {
-        const res = await fetch('/api/heartbeat', { method: 'POST' });
-        if (res.ok) {
-          this.updateDaemonBadge(true);
-        } else {
-          this.updateDaemonBadge(false);
-        }
-      } catch (e) {
-        this.updateDaemonBadge(false);
-      }
-    };
-    sendBeat();
-    this.heartbeatInterval = setInterval(sendBeat, 4000);
-  }
-
-  updateDaemonBadge(isActive) {
-    const badge = document.getElementById('daemonStatusBadge');
-    if (!badge) return;
-    if (isActive) {
-      badge.className = 'hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-950/60 text-emerald-300 border border-emerald-700/60';
-      badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span><span>Background Service: Active</span>`;
-      badge.title = "PulseRemind background daemon is running. Even if you close this browser tab, audio alarms and voice announcements will continue playing on your PC.";
-    } else {
-      badge.className = 'hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-800 text-slate-400 border border-slate-700';
-      badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-500"></span><span>Standalone Mode</span>`;
-      badge.title = "Running in browser memory. Keep this tab open or launch via run_reminder.bat for background alerts.";
-    }
-  }
-
-  async testBackgroundAlert() {
-    try {
-      const res = await fetch('/api/daemon/test-alert', { method: 'POST' });
-      if (res.ok) {
-        alert('Test alert triggered via Windows! Check your PC speaker sound and desktop notification.');
-      }
-    } catch (e) {
-      alert('Background server not reachable: ' + e);
-    }
-  }
-
-  async shutdownDaemon() {
-    if (confirm('Are you sure you want to stop the PulseRemind background service?')) {
-      try {
-        await fetch('/api/shutdown', { method: 'POST' });
-        alert('PulseRemind background service has been stopped.');
-        window.close();
-      } catch (e) {}
-    }
   }
 
   setupAudioUnlockTrigger() {
