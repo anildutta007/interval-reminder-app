@@ -105,5 +105,18 @@ class TestPulseRemind(unittest.TestCase):
         res_del = self.client.delete(f"/api/tasks/{task_id}")
         self.assertEqual(res_del.status_code, 200)
 
+    def test_daemon_heartbeat_and_config(self):
+        # 1. Heartbeat check
+        res_hb = self.client.post("/api/heartbeat")
+        self.assertEqual(res_hb.status_code, 200)
+        data = res_hb.json()
+        self.assertEqual(data["status"], "alive")
+        self.assertTrue(data["isBackgroundDaemonActive"])
+
+        # 2. Config update
+        res_cfg = self.client.post("/api/daemon/config", json={"reopenBrowserOnAlarm": True})
+        self.assertEqual(res_cfg.status_code, 200)
+        self.assertTrue(res_cfg.json()["reopenBrowserOnAlarm"])
+
 if __name__ == "__main__":
     unittest.main()

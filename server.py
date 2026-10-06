@@ -9,6 +9,8 @@ import socket
 import webbrowser
 import threading
 import time
+import subprocess
+import winsound
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 
@@ -452,6 +454,214 @@ async def reset_defaults(profileId: str = Query("default-profile")):
     save_tasks(tasks)
     return {"success": True, "message": "Default tasks restored"}
 
+# --- Background Daemon & System Alerts ---
+last_client_heartbeat = 0.0
+background_scheduler_active = True
+reopen_browser_on_alarm = True
+
+def play_system_chime():
+    try:
+        # Melodic 4-note chime sequence (D5, F#5, A5, D6)
+        notes = [(587, 140), (740, 140), (880, 160), (1175, 320)]
+        for freq, dur in notes:
+            winsound.Beep(freq, dur)
+    except Exception as e:
+        print(f"[BackgroundSound] Error: {e}")
+
+def speak_system_voice(text: str, lang: str = "en"):
+    if not text:
+        return
+    # Method 1: SAPI via win32com (fastest native Windows voice)
+    try:
+        import win32com.client
+        speaker = win32com.client.Dispatch("SAPI.SpVoice")
+        speaker.Rate = 0
+        speaker.Volume = 100
+        speaker.Speak(text)
+        return
+    except Exception:
+        pass
+
+    # Method 2: PowerShell SpeechSynthesizer fallback
+    try:
+        clean_text = text.replace("'", " ").replace('"', " ")
+        ps_cmd = (
+            "Add-Type -AssemblyName System.Speech; "
+            "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
+            f"$s.Speak('{clean_text}');"
+        )
+        subprocess.run(["powershell", "-Command", ps_cmd], capture_output=True, timeout=10)
+    except Exception as e:
+        print(f"[BackgroundVoice] Error: {e}")
+
+def show_system_notification(title: str, message: str):
+    try:
+        clean_title = title.replace("'", " ").replace('"', " ")
+        clean_msg = message.replace("'", " ").replace('"', " ")
+        ps_cmd = (
+            "Add-Type -AssemblyName System.Windows.Forms; "
+            "Add-Type -AssemblyName System.Drawing; "
+            "$n = New-Object Windows.Forms.NotifyIcon; "
+            "$n.Icon = [Drawing.SystemIcons]::Information; "
+            "$n.Visible = $true; "
+            f"$n.ShowBalloonTip(5000, '{clean_title}', '{clean_msg}', [Windows.Forms.ToolTipIcon]::Info); "
+            "Start-Sleep -s 1; $n.Dispose()"
+        )
+        subprocess.Popen(["powershell", "-Command", ps_cmd], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception as e:
+        print(f"[BackgroundNotification] Error: {e}")
+
+def trigger_background_alert(task: Dict[str, Any]):
+    title = task.get("title", "Task Reminder")
+    alert_type = task.get("alertType", "both")
+    speech_lang = task.get("speechLang", "both")
+    speech_en = task.get("speechTextEn") or f"Time to {title}! {task.get('description', '')}"
+    speech_hi = task.get("speechTextHi") or f"{title} का समय हो गया है।"
+
+    print(f"\n[PulseRemind Daemon] 🔔 BACKGROUND ALARM TRIGGERED FOR: {title}")
+
+    # 1. Play PC audio chime through Windows sound hardware
+    if alert_type in ("both", "sound"):
+        play_system_chime()
+
+    # 2. Fire Windows desktop balloon notification
+    display_msg = speech_en if speech_lang == "en" else (speech_hi if speech_lang == "hi" else f"{speech_en} | {speech_hi}")
+    show_system_notification(f"PulseRemind: {title}", display_msg)
+
+    # 3. Speak the announcement aloud through Windows
+    if alert_type in ("both", "voice"):
+        if speech_lang == "hi":
+            speak_system_voice(speech_hi, "hi")
+        elif speech_lang == "en":
+            speak_system_voice(speech_en, "en")
+        else:
+            # Bilingual: English then Hindi
+            speak_system_voice(speech_en, "en")
+            time.sleep(0.4)
+            speak_system_voice(speech_hi, "hi")
+
+    # 4. Auto-reopen browser tab so user has instant access to UI
+    if reopen_browser_on_alarm:
+        try:
+            webbrowser.open("http://127.0.0.1:8050")
+        except Exception:
+            pass
+
+def background_alarm_worker():
+    global last_client_heartbeat, background_scheduler_active
+    print("[PulseRemind] Background Alarm Daemon running (active even when browser URL is closed).")
+    while background_scheduler_active:
+        time.sleep(1.0)
+        now_ts = time.time()
+
+        # If client browser tab has sent a heartbeat within the last 10 seconds,
+        # the browser frontend is handling audio and speech.
+        is_client_active = (now_ts - last_client_heartbeat) <= 10.0
+        if is_client_active:
+            continue
+
+        # If browser tab is CLOSED, check tasks and trigger background alarms!
+        try:
+            tasks = load_tasks()
+            now_dt = datetime.now()
+            current_mins = now_dt.hour * 60 + now_dt.minute + now_dt.second / 60.0
+
+            for task in tasks:
+                if not task.get("enabled", True):
+                    continue
+
+                start_h, start_m = map(int, task.get("startTime", "09:00").split(":"))
+                end_h, end_m = map(int, task.get("endTime", "18:00").split(":"))
+                start_mins = start_h * 60 + start_m
+                end_mins = end_h * 60 + end_m
+                interval_mins = task.get("intervalMinutes", 45)
+
+                if current_mins < start_mins or current_mins >= end_mins:
+                    continue
+
+                # Check snooze
+                snoozed_until = task.get("snoozedUntil")
+                if snoozed_until and snoozed_until > now_ts:
+                    continue
+
+                # Determine last trigger or start anchor
+                last_completed = task.get("lastCompletedAt")
+                last_triggered = task.get("lastTriggeredAt")
+                anchor_ts = None
+
+                if last_completed:
+                    try:
+                        lc_dt = datetime.fromisoformat(last_completed.replace("Z", "+00:00"))
+                        if lc_dt.date() == now_dt.date():
+                            anchor_ts = lc_dt.timestamp()
+                    except Exception:
+                        pass
+
+                if not anchor_ts and last_triggered:
+                    anchor_ts = last_triggered
+
+                if not anchor_ts:
+                    today_start = now_dt.replace(hour=start_h, minute=start_m, second=0, microsecond=0)
+                    anchor_ts = today_start.timestamp()
+
+                interval_sec = interval_mins * 60.0
+                elapsed = now_ts - anchor_ts
+
+                # If interval reached and not triggered in the last 60 seconds
+                if elapsed >= interval_sec and (not last_triggered or (now_ts - last_triggered) >= 60.0):
+                    task["lastTriggeredAt"] = now_ts
+                    save_tasks(tasks)
+                    threading.Thread(target=trigger_background_alert, args=(task,), daemon=True).start()
+        except Exception as e:
+            print(f"[BackgroundDaemon] Error: {e}")
+
+@app.on_event("startup")
+def start_daemon_on_launch():
+    threading.Thread(target=background_alarm_worker, daemon=True).start()
+
+@app.post("/api/heartbeat")
+async def client_heartbeat():
+    global last_client_heartbeat
+    last_client_heartbeat = time.time()
+    return {
+        "status": "alive",
+        "isBackgroundDaemonActive": True,
+        "reopenBrowserOnAlarm": reopen_browser_on_alarm,
+        "time": last_client_heartbeat
+    }
+
+class ConfigUpdate(BaseModel):
+    reopenBrowserOnAlarm: Optional[bool] = None
+
+@app.post("/api/daemon/config")
+async def update_daemon_config(req: ConfigUpdate):
+    global reopen_browser_on_alarm
+    if req.reopenBrowserOnAlarm is not None:
+        reopen_browser_on_alarm = req.reopenBrowserOnAlarm
+    return {"reopenBrowserOnAlarm": reopen_browser_on_alarm}
+
+@app.post("/api/daemon/test-alert")
+async def test_daemon_alert():
+    """Trigger an immediate test alert via Windows system audio and speech."""
+    test_task = {
+        "title": "Drink Water (Test)",
+        "alertType": "both",
+        "speechLang": "both",
+        "speechTextEn": "PulseRemind test: Time to drink water!",
+        "speechTextHi": "परीक्षण सूचना: पानी पीने का समय हो गया है!"
+    }
+    threading.Thread(target=trigger_background_alert, args=(test_task,), daemon=True).start()
+    return {"success": True, "message": "Test alert launched"}
+
+@app.post("/api/shutdown")
+async def shutdown_server():
+    """Gracefully stop the server process."""
+    def kill_soon():
+        time.sleep(1.0)
+        os._exit(0)
+    threading.Thread(target=kill_soon).start()
+    return {"success": True, "message": "Server shutting down"}
+
 # Serve frontend static assets
 @app.get("/")
 async def serve_index():
@@ -477,6 +687,7 @@ if __name__ == "__main__":
     print("=" * 60)
     print("   PulseRemind - Interval Task & Habit Reminder Alarm Hub")
     print(f"   Server running on http://127.0.0.1:{PORT}")
+    print("   Background Daemon: Active (Runs even when browser is closed)")
     print("=" * 60)
     
     threading.Thread(target=open_browser, args=(PORT,), daemon=True).start()

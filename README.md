@@ -57,21 +57,24 @@ Plus quick 1-click templates for **👁️ 20-20-20 Eye Rest** and **🪑 Postur
 
 ## 🚀 How to Run
 
-### Method 1: One-Click Windows Batch Script
-Double-click `run_reminder.bat` in the root `c:\Anil Google Projects\` folder:
+### Method 1: Silent Background Daemon (Active Even When Browser is Closed)
+Double-click `start_background_reminder.bat` in the root `c:\Anil Google Projects\` folder:
+```cmd
+c:\Anil Google Projects\start_background_reminder.bat
+```
+- **Silent Background Execution**: Launches the Python server via `pythonw.exe` without any open terminal window.
+- **Works When Browser URL is Closed**: Even if you close the browser tab/URL, the Python background daemon continues monitoring your tasks, plays audio chimes on your PC, speaks reminders aloud in Hindi and English, and displays Windows desktop notifications!
+- **Auto-Reopens Web App on Alarm**: When an interval is reached, it automatically re-opens `http://127.0.0.1:8050` so you can click *"Done!"* or *"Snooze"* with one click.
+- **To stop the background service**: Double-click `stop_background_reminder.bat`.
+
+### Method 2: Standard Interactive Console Server
+Double-click `run_reminder.bat` in `c:\Anil Google Projects\`:
 ```cmd
 c:\Anil Google Projects\run_reminder.bat
 ```
-This starts the local FastAPI server and automatically opens your default browser at `http://127.0.0.1:8050`.
-
-### Method 2: Python Command Line
-```cmd
-cd "c:\Anil Google Projects\interval-reminder-app"
-python server.py
-```
 
 ### Method 3: Standalone Browser Launch
-Open `index.html` directly in any modern browser (Chrome, Edge, Firefox, Safari). The app automatically falls back to browser `localStorage` and full Web Audio synthesis with no backend required!
+Open `index.html` directly in any modern browser.
 
 ---
 
