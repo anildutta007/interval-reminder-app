@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PulseRemind - Interval Task & Habit Reminder Alarm Hub</title>
+  
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              900: '#0c4a6e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Canvas Confetti for Task Completion Celebration -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-sky-500 selection:text-white">
+
+  <!-- ========================================================= -->
+  <!-- 1. FULLSCREEN PIN LOCK SCREEN (PROTECTION MODAL)          -->
+  <!-- ========================================================= -->
+  <div id="pinLockOverlay" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-2xl transition-all duration-300">
+    <div id="pinKeypadCard" class="w-full max-w-sm rounded-3xl p-8 glass-panel shadow-2xl border border-slate-700/80 text-center relative overflow-hidden">
+      
+      <!-- Top Decorative Glow -->
+      <div class="absolute -top-12 -left-12 w-36 h-36 bg-sky-500/20 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="absolute -bottom-12 -right-12 w-36 h-36 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none"></div>
+
+      <!-- Profile Avatar & Greeting -->
+      <div class="relative mb-4">
+        <div class="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-4xl shadow-lg shadow-sky-500/30 ring-4 ring-slate-800">
+          <span id="lockProfileAvatar">👤</span>
+        </div>
+      </div>
+
+      <h2 class="text-xl font-bold font-display text-white mb-1">
+        Welcome, <span id="lockProfileName" class="text-sky-400">Anil</span>
+      </h2>
+      <p class="text-xs text-slate-400 mb-6">Enter your security PIN to unlock tasks</p>
+
+      <!-- 4 PIN Dots Indicator -->
+      <div class="flex items-center justify-center gap-3.5 mb-6">
+        <div class="pin-dot w-4 h-4 rounded-full bg-slate-700 border border-slate-600 transition-all"></div>
+        <div class="pin-dot w-4 h-4 rounded-full bg-slate-700 border border-slate-600 transition-all"></div>
+        <div class="pin-dot w-4 h-4 rounded-full bg-slate-700 border border-slate-600 transition-all"></div>
+        <div class="pin-dot w-4 h-4 rounded-full bg-slate-700 border border-slate-600 transition-all"></div>
+      </div>
+
+      <!-- Error Message -->
+      <div id="pinErrorMessage" class="hidden text-xs text-red-400 font-medium mb-4 bg-red-950/40 py-1.5 px-3 rounded-lg border border-red-800/50">
+        Incorrect PIN. Default is 1234.
+      </div>
+
+      <!-- Numeric Keypad Grid -->
+      <div class="grid grid-cols-3 gap-3 mb-6">
+        <button onclick="window.app.handlePinInput('1')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">1</button>
+        <button onclick="window.app.handlePinInput('2')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">2</button>
+        <button onclick="window.app.handlePinInput('3')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">3</button>
+        
+        <button onclick="window.app.handlePinInput('4')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">4</button>
+        <button onclick="window.app.handlePinInput('5')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">5</button>
+        <button onclick="window.app.handlePinInput('6')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">6</button>
+        
+        <button onclick="window.app.handlePinInput('7')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">7</button>
+        <button onclick="window.app.handlePinInput('8')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">8</button>
+        <button onclick="window.app.handlePinInput('9')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">9</button>
+        
+        <button onclick="window.app.handlePinClear()" class="keypad-btn h-14 rounded-2xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-semibold uppercase tracking-wider transition cursor-pointer">Clear</button>
+        <button onclick="window.app.handlePinInput('0')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">0</button>
+        <button onclick="window.app.handlePinBackspace()" class="keypad-btn h-14 rounded-2xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white text-lg transition cursor-pointer flex items-center justify-center">⌫</button>
+      </div>
+
+      <!-- Bottom Hint & Helper -->
+      <div class="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800">
+        <button onclick="alert('Default initial PIN is 1234. You can change this anytime in Profile Settings.')" class="hover:text-sky-300 transition cursor-pointer underline decoration-dotted">
+          Forgot PIN?
+        </button>
+        <span class="text-slate-500 font-mono text-[11px]">Type keys 0-9 on keyboard</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- 2. ACTIVE ALARM MODAL (HEADS-UP ALERT DISPLAY)             -->
+  <!-- ========================================================= -->
+  <div id="activeAlarmModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/92 backdrop-blur-2xl">
+    <div class="w-full max-w-lg rounded-3xl p-8 glass-panel shadow-2xl border-2 border-sky-500 text-center relative overflow-hidden alarm-modal-bounce">
+      
+      <!-- Pulsing Rings Background -->
+      <div class="w-28 h-28 mx-auto mb-6 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-5xl shadow-2xl shadow-sky-500/50 alarm-pulsing ring-8 ring-sky-500/20">
+        <span id="alarmModalIcon">💧</span>
+      </div>
+
+      <div class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-sky-900/60 text-sky-300 border border-sky-700 mb-2">
+        <span id="alarmModalCategory">Hydration Reminder</span>
+      </div>
+
+      <h1 id="alarmModalTitle" class="text-3xl font-extrabold font-display text-white mb-3">
+        Drink Water
+      </h1>
+
+      <p id="alarmModalDescription" class="text-slate-300 text-sm max-w-md mx-auto mb-6 leading-relaxed bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+        Drink a 250ml glass of fresh water to keep your body and brain hydrated.
+      </p>
+
+      <div class="text-xs text-sky-400/90 font-mono mb-6" id="alarmModalInterval">
+        Repeats every 45 mins (08:30 - 19:30)
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <button onclick="window.app.handleAlarmMarkDone()" class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold text-base shadow-xl shadow-emerald-500/30 transition transform hover:-translate-y-0.5 cursor-pointer flex items-center justify-center gap-2">
+          <span>✅</span>
+          <span>Done! (I did it)</span>
+        </button>
+
+        <button onclick="window.app.handleAlarmSnooze(5)" class="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/40 font-semibold text-sm transition cursor-pointer flex items-center justify-center gap-2">
+          <span>⏰</span>
+          <span>Snooze 5 Min</span>
+        </button>
+
+        <button onclick="window.app.dismissAlarmModal()" class="w-full sm:w-auto px-4 py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition cursor-pointer">
+          Dismiss
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- 3. TOP NAVIGATION HEADER                                  -->
+  <!-- ========================================================= -->
+  <header class="sticky top-0 z-40 bg-slate-950/85 backdrop-blur-xl border-b border-slate-800/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+      
+      <!-- Brand & Title -->
+      <div class="flex items-center gap-3.5">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-2xl shadow-lg shadow-sky-500/25 ring-2 ring-sky-400/20">
+          ⏰
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl font-bold font-display tracking-tight text-white">PulseRemind</h1>
+            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-sky-950 text-sky-400 border border-sky-800">v1.0</span>
+          </div>
+          <p class="text-xs text-slate-400">Automated Interval Alarms & Habit Routines</p>
+        </div>
+      </div>
+
+      <!-- Live Clock & Date -->
+      <div class="hidden md:flex flex-col items-center justify-center px-4 py-1.5 rounded-2xl bg-slate-900/80 border border-slate-800">
+        <div id="liveClockText" class="font-mono text-base font-bold text-sky-400 tracking-wider">--:--:--</div>
+        <div id="liveDateText" class="text-[11px] text-slate-400">Loading date...</div>
+      </div>
+
+      <!-- Right Controls: Audio Status, Volume, Profile, Lock -->
+      <div class="flex items-center gap-2.5">
+        
+        <!-- Audio State Button -->
+        <button id="audioStatusBtn" class="flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-700/50 hover:bg-emerald-800/50 transition cursor-pointer">
+          <svg id="audioStatusIcon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+          </svg>
+          <span id="audioStatusLabel">Sound Ready</span>
+        </button>
+
+        <!-- Sound Volume Slider (Compact) -->
+        <div class="hidden lg:flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-full border border-slate-800">
+          <span class="text-xs text-slate-400">🔈</span>
+          <input type="range" id="globalVolumeSlider" min="0" max="100" value="85" class="w-20 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500">
+          <button onclick="window.app.sound.playTone('chime')" title="Test Chime Sound" class="text-xs text-sky-400 hover:text-sky-300 font-medium cursor-pointer">
+            Test
+          </button>
+        </div>
+
+        <!-- User Profile Pill -->
+        <button onclick="window.app.openProfileModal()" title="Profile & PIN Settings" class="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 transition cursor-pointer">
+          <span id="navProfileAvatar" class="text-lg">👤</span>
+          <span id="navProfileName" class="text-xs font-semibold text-white hidden sm:inline">Anil Dutta</span>
+          <span class="text-xs text-slate-400">⚙️</span>
+        </button>
+
+        <!-- Lock App Button -->
+        <button id="lockAppNavBtn" title="Lock App with PIN" class="p-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-sky-400 border border-slate-800 transition cursor-pointer">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </button>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================= -->
+  <!-- 4. MAIN CONTENT AREA                                      -->
+  <!-- ========================================================= -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Hero / Summary Widget Bar -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      
+      <!-- Summary Card 1: Active Tasks Running -->
+      <div class="glass-panel p-5 rounded-3xl border border-slate-800 relative overflow-hidden flex items-center justify-between">
+        <div class="space-y-1">
+          <div class="text-xs uppercase font-bold tracking-wider text-slate-400">Active Loops</div>
+          <div class="text-3xl font-extrabold font-display text-white">
+            <span id="summaryActiveCount">3</span> <span class="text-xs font-normal text-slate-400">tasks running</span>
+          </div>
+          <div class="text-[11px] text-emerald-400 flex items-center gap-1.5 font-medium">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            Automatic alarms scheduled
+          </div>
+        </div>
+        <div class="w-14 h-14 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-3xl">
+          🔄
+        </div>
+      </div>
+
+      <!-- Summary Card 2: Nearest Next Alarm -->
+      <div class="glass-panel p-5 rounded-3xl border border-sky-500/30 bg-sky-950/20 relative overflow-hidden flex items-center justify-between">
+        <div class="space-y-1">
+          <div class="text-xs uppercase font-bold tracking-wider text-sky-300">Next Upcoming Alarm</div>
+          <div id="summaryNextAlarmText" class="text-3xl font-extrabold font-mono text-sky-400">
+            --:--
+          </div>
+          <div id="summaryNextTaskName" class="text-xs text-slate-300 font-medium truncate max-w-[210px]">
+            Calculating next interval...
+          </div>
+        </div>
+        <div class="w-14 h-14 rounded-2xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-3xl">
+          🔔
+        </div>
+      </div>
+
+      <!-- Summary Card 3: Today's Completion Score -->
+      <div class="glass-panel p-5 rounded-3xl border border-slate-800 relative overflow-hidden flex items-center justify-between">
+        <div class="space-y-1">
+          <div class="text-xs uppercase font-bold tracking-wider text-slate-400">Completed Today</div>
+          <div class="text-3xl font-extrabold font-display text-emerald-400">
+            <span id="summaryCompletedCount">0</span> <span class="text-xs font-normal text-slate-400">times</span>
+          </div>
+          <div class="text-[11px] text-slate-400">
+            Keep up healthy habits & breaks!
+          </div>
+        </div>
+        <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-3xl">
+          🏆
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Quick Template Action Chips -->
+    <div class="mb-8 p-4 rounded-3xl bg-slate-900/50 border border-slate-800/80">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+          <span>⚡ Quick Templates</span>
+          <span class="text-slate-500 font-normal">(Click to instantly add or configure)</span>
+        </span>
+        <button onclick="window.app.openAddTaskModal()" class="px-4 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs transition shadow-md shadow-sky-600/30 cursor-pointer flex items-center gap-1.5">
+          <span>+ Custom Task</span>
+        </button>
+      </div>
+      
+      <div class="flex flex-wrap items-center gap-2.5">
+        <button onclick="window.app.openAddTaskModal('water')" class="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-sky-950 hover:border-sky-500 border border-slate-700 text-xs text-slate-200 transition cursor-pointer flex items-center gap-1.5">
+          <span>💧</span> Drink Water (45m)
+        </button>
+        <button onclick="window.app.openAddTaskModal('walk')" class="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-emerald-950 hover:border-emerald-500 border border-slate-700 text-xs text-slate-200 transition cursor-pointer flex items-center gap-1.5">
+          <span>🚶</span> Standup and walk (60m)
+        </button>
+        <button onclick="window.app.openAddTaskModal('stretch')" class="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-amber-950 hover:border-amber-500 border border-slate-700 text-xs text-slate-200 transition cursor-pointer flex items-center gap-1.5">
+          <span>🧘</span> Stretch your body (90m)
+        </button>
+        <button onclick="window.app.openAddTaskModal('eye')" class="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-purple-950 hover:border-purple-500 border border-slate-700 text-xs text-slate-200 transition cursor-pointer flex items-center gap-1.5">
+          <span>👁️</span> 20-20-20 Eye Rest (20m)
+        </button>
+        <button onclick="window.app.openAddTaskModal('posture')" class="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-rose-950 hover:border-rose-500 border border-slate-700 text-xs text-slate-200 transition cursor-pointer flex items-center gap-1.5">
+          <span>🪑</span> Posture & Deep Breath (30m)
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter Tabs & Search Controls -->
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+      
+      <!-- Filter Tabs -->
+      <div class="flex items-center gap-1.5 p-1 bg-slate-900 rounded-2xl border border-slate-800 w-full sm:w-auto">
+        <button data-filter="all" class="filter-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-sky-600 text-white transition cursor-pointer">
+          All Tasks
+        </button>
+        <button data-filter="active" class="filter-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:text-white transition cursor-pointer">
+          Active Now
+        </button>
+        <button data-filter="completed" class="filter-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:text-white transition cursor-pointer">
+          Completed Today
+        </button>
+        <button data-filter="paused" class="filter-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300 hover:text-white transition cursor-pointer">
+          Paused
+        </button>
+      </div>
+
+      <!-- Search & Restore Defaults Button -->
+      <div class="flex items-center gap-2.5 w-full sm:w-auto">
+        <div class="relative w-full sm:w-64">
+          <input type="text" id="taskSearchInput" placeholder="Search tasks..." class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition">
+        </div>
+
+        <button onclick="window.app.restoreDefaults()" title="Restore Drink Water, Standup & Walk, Stretch Body defaults" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-medium transition cursor-pointer whitespace-nowrap">
+          Reset 3 Defaults
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Dynamic Task Grid Container -->
+    <div id="taskGridContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Task cards rendered by app.js -->
+    </div>
+
+  </main>
+
+  <!-- ========================================================= -->
+  <!-- 5. ADD / EDIT TASK MODAL                                  -->
+  <!-- ========================================================= -->
+  <div id="taskEditModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/85 backdrop-blur-xl">
+    <div class="w-full max-w-lg rounded-3xl p-6 sm:p-8 glass-panel shadow-2xl border border-slate-700 max-h-[90vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
+        <div>
+          <h2 id="taskModalHeading" class="text-xl font-bold font-display text-white">Add New Interval Task</h2>
+          <p class="text-xs text-slate-400">Configure repeating interval, active hours & alarm tone</p>
+        </div>
+        <button onclick="window.app.closeTaskModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-sm cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <form id="taskFormElement" class="space-y-4">
+        <input type="hidden" id="taskFormId" value="">
+
+        <!-- Title & Icon -->
+        <div class="grid grid-cols-4 gap-3">
+          <div class="col-span-3">
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Task Title *</label>
+            <input type="text" id="taskFormTitle" required placeholder="e.g. Drink Water" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-sky-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Emoji</label>
+            <input type="text" id="taskFormIcon" maxlength="4" value="💧" class="w-full text-center bg-slate-900 border border-slate-700 rounded-xl px-2 py-2 text-sm text-white focus:outline-none focus:border-sky-500">
+          </div>
+        </div>
+
+        <!-- Category & Color -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Category</label>
+            <input type="text" id="taskFormCategory" placeholder="e.g. Hydration, Movement" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-sky-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Theme Color</label>
+            <select id="taskFormColor" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-sky-500">
+              <option value="sky">Sky Blue</option>
+              <option value="emerald">Emerald Green</option>
+              <option value="amber">Warm Amber</option>
+              <option value="purple">Vibrant Purple</option>
+              <option value="rose">Soft Rose</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Description / Note -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Instructions / Note</label>
+          <textarea id="taskFormDescription" rows="2" placeholder="e.g. Drink a 250ml glass of water" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-sky-500"></textarea>
+        </div>
+
+        <!-- Active Hours Window: Start Time & End Time -->
+        <div class="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800">
+          <label class="block text-xs font-bold text-slate-300 mb-2">Active Daily Window (Hours)</label>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <span class="text-[11px] text-slate-400 block mb-1">Start Time (24h)</span>
+              <input type="time" id="taskFormStartTime" value="08:30" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-white focus:outline-none focus:border-sky-500">
+            </div>
+            <div>
+              <span class="text-[11px] text-slate-400 block mb-1">End Time (24h)</span>
+              <input type="time" id="taskFormEndTime" value="19:30" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-white focus:outline-none focus:border-sky-500">
+            </div>
+          </div>
+          <span class="text-[10px] text-slate-500 block mt-1.5">Alarms will only trigger between these hours.</span>
+        </div>
+
+        <!-- Reminder Interval -->
+        <div class="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-bold text-slate-300">Repeat Interval (Minutes)</label>
+            <span class="text-xs font-mono font-bold text-sky-400"><span id="intervalPreviewNumber">45</span> mins</span>
+          </div>
+
+          <div class="flex items-center gap-3 mb-2.5">
+            <input type="number" id="taskFormInterval" min="1" max="720" value="45" required class="w-24 bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-white focus:outline-none focus:border-sky-500 text-center font-mono font-bold" oninput="document.getElementById('intervalPreviewNumber').textContent = this.value">
+            
+            <!-- Quick preset buttons -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <button type="button" onclick="document.getElementById('taskFormInterval').value=15; document.getElementById('intervalPreviewNumber').textContent='15'" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs">15m</button>
+              <button type="button" onclick="document.getElementById('taskFormInterval').value=30; document.getElementById('intervalPreviewNumber').textContent='30'" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs">30m</button>
+              <button type="button" onclick="document.getElementById('taskFormInterval').value=45; document.getElementById('intervalPreviewNumber').textContent='45'" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs">45m</button>
+              <button type="button" onclick="document.getElementById('taskFormInterval').value=60; document.getElementById('intervalPreviewNumber').textContent='60'" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs">60m</button>
+              <button type="button" onclick="document.getElementById('taskFormInterval').value=90; document.getElementById('intervalPreviewNumber').textContent='90'" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs">90m</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alarm Tone & Preview -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Alarm Sound Tone</label>
+          <div class="flex items-center gap-2">
+            <select id="taskFormSoundTone" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-sky-500">
+              <option value="chime">Crystal Bell Chime (Pleasant & Bright)</option>
+              <option value="digital">Digital Beep (Classic Electronic Alarm)</option>
+              <option value="bell">Zen Tibetan Bowl (Deep Warm Resonance)</option>
+              <option value="marimba">Marimba Melody (Wooden Acoustic Pluck)</option>
+              <option value="harpsichord">Harpsichord Arpeggio (Classical Calm)</option>
+              <option value="echo">Radar Echo (Futuristic Ping)</option>
+              <option value="urgent">Urgent Siren (Two-Tone High Alert)</option>
+            </select>
+            <button type="button" onclick="window.app.sound.playTone(document.getElementById('taskFormSoundTone').value)" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 font-semibold text-xs border border-slate-700 cursor-pointer flex items-center gap-1">
+              <span>🔊</span> Test
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal Submit Actions -->
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+          <button type="button" onclick="window.app.closeTaskModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition cursor-pointer">
+            Cancel
+          </button>
+          <button type="submit" class="px-6 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-bold shadow-lg shadow-sky-600/30 transition cursor-pointer">
+            Save Task Routine
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- 6. PROFILE & SECURITY SETTINGS MODAL                      -->
+  <!-- ========================================================= -->
+  <div id="profileSettingsModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/85 backdrop-blur-xl">
+    <div class="w-full max-w-lg rounded-3xl p-6 sm:p-8 glass-panel shadow-2xl border border-slate-700 max-h-[90vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
+        <div>
+          <h2 class="text-xl font-bold font-display text-white">Profile & Security Settings</h2>
+          <p class="text-xs text-slate-400">Manage user profiles, PIN lock & sound preferences</p>
+        </div>
+        <button onclick="window.app.closeProfileModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-sm cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <!-- Profile Details Form -->
+      <div class="space-y-6">
+        
+        <!-- Basic Info -->
+        <div class="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Profile Identity</h3>
+          
+          <div class="grid grid-cols-4 gap-3">
+            <div class="col-span-3">
+              <label class="block text-xs text-slate-400 mb-1">Your Name</label>
+              <input type="text" id="settingsProfName" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-white focus:outline-none focus:border-sky-500">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Avatar</label>
+              <input type="text" id="settingsProfAvatar" maxlength="4" class="w-full text-center bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-sm text-white focus:outline-none focus:border-sky-500">
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <div>
+              <span class="text-xs font-semibold text-slate-200">Require PIN Lock</span>
+              <p class="text-[11px] text-slate-400">Lock app with PIN upon launch</p>
+            </div>
+            <input type="checkbox" id="settingsPinEnabled" class="w-4 h-4 rounded text-sky-500 bg-slate-900 border-slate-700 focus:ring-sky-500 cursor-pointer">
+          </div>
+
+          <button type="button" onclick="window.app.saveProfileBasicSettings()" class="w-full mt-2 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-sky-400 border border-slate-700 cursor-pointer">
+            Save Profile Info
+          </button>
+        </div>
+
+        <!-- Change Security PIN -->
+        <div class="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Change Security PIN</h3>
+          
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Current PIN</label>
+            <input type="password" id="settingsOldPin" maxlength="8" placeholder="Current PIN (default: 1234)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-sky-500">
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">New 4-8 Digit PIN</label>
+              <input type="password" id="settingsNewPin" maxlength="8" placeholder="New PIN" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-sky-500">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Confirm New PIN</label>
+              <input type="password" id="settingsConfirmPin" maxlength="8" placeholder="Confirm" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-sky-500">
+            </div>
+          </div>
+
+          <span id="settingsPinMsg" class="hidden text-xs"></span>
+
+          <button type="button" onclick="window.app.saveNewPinFromSettings()" class="w-full py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/30 transition cursor-pointer">
+            Update Security PIN
+          </button>
+        </div>
+
+        <!-- Multi-Profile Switcher -->
+        <div class="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Profiles Switcher</h3>
+            <button onclick="window.app.openCreateProfileModal()" class="text-xs text-sky-400 hover:text-sky-300 font-bold cursor-pointer">
+              + New Profile
+            </button>
+          </div>
+
+          <div id="profileSwitchContainer" class="space-y-2">
+            <!-- Rendered by app.js -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- 7. CREATE NEW PROFILE MODAL                               -->
+  <!-- ========================================================= -->
+  <div id="createProfileModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/85 backdrop-blur-xl">
+    <div class="w-full max-w-sm rounded-3xl p-6 glass-panel shadow-2xl border border-slate-700">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+        <h2 class="text-lg font-bold font-display text-white">Create New Profile</h2>
+        <button onclick="window.app.closeCreateProfileModal()" class="text-slate-400 hover:text-white text-sm cursor-pointer">✕</button>
+      </div>
+
+      <form id="newProfileFormElement" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Profile Name *</label>
+          <input type="text" id="newProfName" required placeholder="e.g. Work Routine, Fitness" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-white focus:outline-none focus:border-sky-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Avatar Emoji</label>
+          <input type="text" id="newProfAvatar" value="💼" maxlength="4" class="w-full text-center bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-white focus:outline-none focus:border-sky-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Set 4-Digit Security PIN *</label>
+          <input type="password" id="newProfPin" required minlength="4" maxlength="8" placeholder="e.g. 5678" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-sky-500">
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+          <button type="button" onclick="window.app.closeCreateProfileModal()" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-medium cursor-pointer">Cancel</button>
+          <button type="submit" class="px-4 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/30 cursor-pointer">Create Profile</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/static/app.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

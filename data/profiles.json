@@ -1,0 +1,17 @@
+[
+  {
+    "id": "default-profile",
+    "name": "Anil Dutta",
+    "avatar": "👤",
+    "pin": "1234",
+    "pinEnabled": true,
+    "autoLockMinutes": 0,
+    "volume": 0.85,
+    "alarmSound": "chime",
+    "soundRepeatCount": 3,
+    "soundEnabled": true,
+    "notificationsEnabled": true,
+    "theme": "dark",
+    "createdAt": "2026-10-06T11:28:56.068389"
+  }
+]
