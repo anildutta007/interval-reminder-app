@@ -515,10 +515,31 @@ def trigger_background_alert(task: Dict[str, Any]):
     title = task.get("title", "Task Reminder")
     alert_type = task.get("alertType", "both")
     speech_lang = task.get("speechLang", "both")
+    
+    # Identify which person/profile this task belongs to for multi-user clarity
+    prof_name = ""
+    try:
+        profiles = load_profiles()
+        prof = next((p for p in profiles if p["id"] == task.get("profileId")), None)
+        if prof and prof.get("name"):
+            prof_name = prof["name"].strip()
+    except Exception:
+        pass
+
     speech_en = task.get("speechTextEn") or f"Time to {title}! {task.get('description', '')}"
     speech_hi = task.get("speechTextHi") or f"{title} का समय हो गया है।"
 
-    print(f"\n[PulseRemind Daemon] 🔔 BACKGROUND ALARM TRIGGERED FOR: {title}")
+    # Personalize spoken voice if profile is named
+    if prof_name and prof_name.lower() not in ("default", "main"):
+        voice_en = f"{prof_name}, {speech_en}"
+        voice_hi = f"{prof_name} जी, {speech_hi}"
+        notif_title = f"PulseRemind ({prof_name}): {title}"
+    else:
+        voice_en = speech_en
+        voice_hi = speech_hi
+        notif_title = f"PulseRemind: {title}"
+
+    print(f"\n[PulseRemind Daemon] 🔔 BACKGROUND ALARM TRIGGERED FOR: {notif_title}")
 
     # 1. Play PC audio chime through Windows sound hardware
     if alert_type in ("both", "sound"):
@@ -526,19 +547,19 @@ def trigger_background_alert(task: Dict[str, Any]):
 
     # 2. Fire Windows desktop balloon notification
     display_msg = speech_en if speech_lang == "en" else (speech_hi if speech_lang == "hi" else f"{speech_en} | {speech_hi}")
-    show_system_notification(f"PulseRemind: {title}", display_msg)
+    show_system_notification(notif_title, display_msg)
 
     # 3. Speak the announcement aloud through Windows
     if alert_type in ("both", "voice"):
         if speech_lang == "hi":
-            speak_system_voice(speech_hi, "hi")
+            speak_system_voice(voice_hi, "hi")
         elif speech_lang == "en":
-            speak_system_voice(speech_en, "en")
+            speak_system_voice(voice_en, "en")
         else:
             # Bilingual: English then Hindi
-            speak_system_voice(speech_en, "en")
+            speak_system_voice(voice_en, "en")
             time.sleep(0.4)
-            speak_system_voice(speech_hi, "hi")
+            speak_system_voice(voice_hi, "hi")
 
     # 4. Auto-reopen browser tab so user has instant access to UI
     if reopen_browser_on_alarm:
@@ -721,8 +742,9 @@ def open_browser(port: int):
         print(f"[WARN] Could not auto-launch browser: {e}")
 
 if __name__ == "__main__":
-    PORT = 8050
+    PORT = int(os.environ.get("PORT", 8050))
     local_ip = get_local_ip()
+    is_cloud = bool(os.environ.get("RENDER") or os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("DYNO"))
     print("=" * 60)
     print("   PulseRemind - Interval Task & Habit Reminder Alarm Hub")
     print(f"   PC Local URL:       http://127.0.0.1:{PORT}")
@@ -730,5 +752,6 @@ if __name__ == "__main__":
     print("   Background Daemon:  Active (Runs even when browser is closed)")
     print("=" * 60)
     
-    threading.Thread(target=open_browser, args=(PORT,), daemon=True).start()
+    if not is_cloud:
+        threading.Thread(target=open_browser, args=(PORT,), daemon=True).start()
     uvicorn.run("server:app", host="0.0.0.0", port=PORT, reload=False)

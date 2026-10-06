@@ -2092,13 +2092,54 @@ class PulseRemindApp {
     }).join('');
   }
 
+  openProfileSwitchModal() {
+    this.closeProfileModal();
+    const container = document.getElementById('quickProfileSwitchContainer');
+    if (container) {
+      container.innerHTML = this.dataStore.profiles.map(p => {
+        const isCurrent = this.dataStore.currentProfile && this.dataStore.currentProfile.id === p.id;
+        return `
+          <div onclick="window.app.switchProfileTo('${p.id}')" class="flex items-center justify-between p-3.5 rounded-2xl border transition cursor-pointer ${isCurrent ? 'border-sky-500 bg-sky-950/40 ring-1 ring-sky-500/50' : 'border-slate-800 bg-slate-900/60 hover:bg-slate-800/80 hover:border-slate-700'}">
+            <div class="flex items-center gap-3">
+              <span class="text-3xl">${p.avatar || '👤'}</span>
+              <div class="text-left">
+                <div class="font-bold text-sm text-white">${p.name} ${isCurrent ? '<span class="text-xs text-sky-400 font-normal">(Active)</span>' : ''}</div>
+                <div class="text-xs text-slate-400">${p.pinEnabled !== false ? '🔒 PIN Protected' : '🔓 No PIN'}</div>
+              </div>
+            </div>
+            <div class="text-xs font-semibold ${isCurrent ? 'text-sky-400' : 'text-slate-400'}">
+              ${isCurrent ? 'Selected' : 'Tap to Switch →'}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    const modal = document.getElementById('profileQuickSwitchModal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+  }
+
+  closeProfileSwitchModal() {
+    const modal = document.getElementById('profileQuickSwitchModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  }
+
   switchProfileTo(profId) {
     const prof = this.dataStore.profiles.find(p => p.id === profId);
     if (prof) {
       this.closeProfileModal();
+      this.closeProfileSwitchModal();
       this.setCurrentProfile(prof);
       if (prof.pinEnabled) {
         this.showPinLockScreen();
+      } else {
+        this.unlockApp();
       }
     }
   }
@@ -2162,6 +2203,7 @@ class PulseRemindApp {
 
   openCreateProfileModal() {
     this.closeProfileModal();
+    this.closeProfileSwitchModal();
     document.getElementById('newProfName').value = '';
     document.getElementById('newProfPin').value = '';
     document.getElementById('newProfAvatar').value = '💼';
@@ -2202,8 +2244,11 @@ class PulseRemindApp {
     });
 
     this.closeCreateProfileModal();
+    this.closeProfileSwitchModal();
+    this.closeProfileModal();
     this.setCurrentProfile(newProf);
-    alert(`Profile "${name}" created with default reminder tasks!`);
+    this.unlockApp();
+    alert(`Welcome, ${name}! Your profile has been created with customizable reminder tasks.`);
   }
 
   // ==========================================
