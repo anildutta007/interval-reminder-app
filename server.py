@@ -471,6 +471,20 @@ async def serve_index():
         return FileResponse(index_file)
     return JSONResponse({"status": "Frontend not yet generated"})
 
+@app.get("/styles.css")
+async def serve_styles():
+    f = os.path.join(BASE_DIR, "styles.css")
+    if os.path.exists(f):
+        return FileResponse(f, media_type="text/css")
+    return JSONResponse({"status": "Not found"}, status_code=404)
+
+@app.get("/app.js")
+async def serve_app_js():
+    f = os.path.join(BASE_DIR, "app.js")
+    if os.path.exists(f):
+        return FileResponse(f, media_type="application/javascript")
+    return JSONResponse({"status": "Not found"}, status_code=404)
+
 # Mount static folder
 app.mount("/static", StaticFiles(directory=BASE_DIR), name="static")
 
