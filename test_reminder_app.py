@@ -57,13 +57,16 @@ class TestPulseRemind(unittest.TestCase):
         self.assertIsInstance(tasks, list)
         task_titles = [t["title"] for t in tasks]
         
-        # Verify required 3 default tasks exist!
+        # Verify required 3 default tasks exist with Hindi & English voice prompts!
         self.assertIn("Drink Water", task_titles)
         self.assertIn("Standup and walk", task_titles)
         self.assertIn("Stretch your body", task_titles)
+        water_task = next(t for t in tasks if t["title"] == "Drink Water")
+        self.assertIn("speechTextHi", water_task)
+        self.assertIn("पानी", water_task["speechTextHi"])
 
     def test_task_lifecycle(self):
-        # 1. Create a task
+        # 1. Create a task with Hindi and English voice configuration
         new_task_payload = {
             "profileId": "default-profile",
             "title": "Test 20-20-20 Eye Rest",
@@ -74,6 +77,10 @@ class TestPulseRemind(unittest.TestCase):
             "endTime": "17:00",
             "intervalMinutes": 20,
             "soundTone": "marimba",
+            "alertType": "both",
+            "speechLang": "both",
+            "speechTextEn": "Rest your eyes!",
+            "speechTextHi": "आंखों को विश्राम दीजिए!",
             "enabled": True,
             "color": "purple"
         }
@@ -82,6 +89,7 @@ class TestPulseRemind(unittest.TestCase):
         created = res_create.json()
         task_id = created["id"]
         self.assertEqual(created["title"], "Test 20-20-20 Eye Rest")
+        self.assertEqual(created["speechTextHi"], "आंखों को विश्राम दीजिए!")
 
         # 2. Complete task
         res_comp = self.client.post(f"/api/tasks/{task_id}/complete")

@@ -130,12 +130,31 @@
         Drink Water
       </h1>
 
-      <p id="alarmModalDescription" class="text-slate-300 text-sm max-w-md mx-auto mb-6 leading-relaxed bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+      <p id="alarmModalDescription" class="text-slate-300 text-sm max-w-md mx-auto mb-4 leading-relaxed bg-slate-900/60 p-3.5 rounded-2xl border border-slate-800">
         Drink a 250ml glass of fresh water to keep your body and brain hydrated.
       </p>
 
-      <div class="text-xs text-sky-400/90 font-mono mb-6" id="alarmModalInterval">
+      <div class="text-xs text-sky-400/90 font-mono mb-4" id="alarmModalInterval">
         Repeats every 45 mins (08:30 - 19:30)
+      </div>
+
+      <!-- Spoken Voice Announcement Card in Alarm Modal -->
+      <div id="alarmModalVoiceCard" class="bg-indigo-950/40 border border-indigo-700/60 rounded-2xl p-4 mb-5 text-left">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+            <span>🗣️ Spoken Announcement</span>
+            <span class="text-[10px] bg-indigo-900/80 px-2 py-0.5 rounded text-indigo-200">Hindi & English Voice</span>
+          </span>
+          <button onclick="if(window.app.activeAlarmTask) window.app.sound.voice.speakTask(window.app.activeAlarmTask)" class="px-2.5 py-1 rounded-lg bg-indigo-600/40 hover:bg-indigo-600 text-indigo-200 hover:text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1">
+            <span>🔊 Re-speak</span>
+          </button>
+        </div>
+        <div id="alarmModalVoiceHi" class="text-sm font-semibold text-white mb-1">
+          <!-- Spoken Hindi text -->
+        </div>
+        <div id="alarmModalVoiceEn" class="text-xs text-slate-300">
+          <!-- Spoken English text -->
+        </div>
       </div>
 
       <!-- Action Buttons -->
@@ -458,6 +477,57 @@
             <button type="button" onclick="window.app.sound.playTone(document.getElementById('taskFormSoundTone').value)" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 font-semibold text-xs border border-slate-700 cursor-pointer flex items-center gap-1">
               <span>🔊</span> Test
             </button>
+          </div>
+        </div>
+
+        <!-- Voice-Over & Alarm Style (Hindi & English) -->
+        <div class="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-900/60 space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+              <span>🗣️ Voice-Over Language & Style</span>
+              <span class="text-[10px] bg-indigo-900/80 text-indigo-200 px-2 py-0.5 rounded font-medium">Hindi & English</span>
+            </label>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Alert Style</label>
+              <select id="taskFormAlertType" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+                <option value="both">🎵 Chime + 🗣️ Spoken Voice (Recommended)</option>
+                <option value="voice">🗣️ Spoken Voice Only (No Chime)</option>
+                <option value="sound">🎵 Sound Chime Only (No Voice)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Language Spoken</label>
+              <select id="taskFormSpeechLang" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+                <option value="both">🌐 Bilingual (English + Hindi)</option>
+                <option value="hi">🇮🇳 Hindi Only (केवल हिंदी)</option>
+                <option value="en">🇬🇧 English Only</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Spoken Hindi Message -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-[11px] text-slate-300 font-medium">🇮🇳 Hindi Voice Message (हिंदी संदेश)</label>
+              <button type="button" onclick="window.app.previewVoice('hi')" class="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold cursor-pointer">
+                🔊 Listen Hindi (सुनें)
+              </button>
+            </div>
+            <input type="text" id="taskFormSpeechHi" placeholder="e.g. पानी पीने का समय हो गया है! कृपया एक गिलास ताज़ा पानी पिएं।" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-sans">
+          </div>
+
+          <!-- Spoken English Message -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-[11px] text-slate-300 font-medium">🇬🇧 English Voice Message</label>
+              <button type="button" onclick="window.app.previewVoice('en')" class="text-[11px] text-sky-400 hover:text-sky-300 font-semibold cursor-pointer">
+                🔊 Listen English
+              </button>
+            </div>
+            <input type="text" id="taskFormSpeechEn" placeholder="e.g. Time to drink water! Please take a glass of fresh water." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
           </div>
         </div>
 

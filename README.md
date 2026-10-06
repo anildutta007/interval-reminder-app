@@ -20,7 +20,16 @@ Pre-loaded upon first launch:
 
 Plus quick 1-click templates for **👁️ 20-20-20 Eye Rest** and **🪑 Posture Check & Deep Breathing**.
 
-### 3. Procedural Web Audio Synthesizer (Zero External Dependencies)
+### 3. Spoken Voice-Over in Hindi & English (Web Speech API)
+- **Natural Voice Announcements**: Instead of just beeping, the app speaks the required action aloud in **Hindi (हिंदी)**, **English**, or **Bilingual (both)**!
+- **Zero Cloud Costs / Offline**: Powered by the browser's native `window.speechSynthesis` API with natural accents.
+- **Configurable per Task**:
+  - `Alert Mode`: Choose between **Chime + Spoken Voice** (chime plays first to grab attention, then the voice speaks), **Spoken Voice Only**, or **Sound Chime Only**.
+  - `Language Options`: Bilingual (English + Hindi), Hindi Only (`hi-IN`), or English Only (`en-US` / `en-GB` / `en-IN`).
+  - `Customizable Spoken Phrases`: Edit the exact words spoken for any routine or use the pre-configured natural phrases.
+  - `One-Click Listen Preview`: Preview how both Hindi and English voices sound directly in the task editor or on the task cards.
+
+### 4. Procedural Web Audio Synthesizer (Zero External Dependencies)
 - **100% Offline & Reliable**: Sounds are synthesized directly in the browser using the Web Audio API (`AudioContext`, `OscillatorNode`, `BiquadFilterNode`, exponential gain envelopes).
 - **7 Distinctive Alarm Tones**:
   - `Crystal Bell Chime`: Bright, multi-harmonic 4-tone bell.

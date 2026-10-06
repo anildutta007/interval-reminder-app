@@ -69,6 +69,10 @@ DEFAULT_TASKS = [
         "endTime": "19:30",
         "intervalMinutes": 45,
         "soundTone": "marimba",
+        "alertType": "both",
+        "speechLang": "both",
+        "speechTextEn": "Time to drink water! Please take a glass of fresh water to stay hydrated.",
+        "speechTextHi": "पानी पीने का समय हो गया है! कृपया एक गिलास ताज़ा पानी पिएं और स्वस्थ रहें।",
         "enabled": True,
         "color": "sky",
         "completedCountToday": 0,
@@ -87,6 +91,10 @@ DEFAULT_TASKS = [
         "endTime": "18:00",
         "intervalMinutes": 60,
         "soundTone": "digital",
+        "alertType": "both",
+        "speechLang": "both",
+        "speechTextEn": "Time to stand up and walk! Take a 2-minute walking break to improve blood circulation.",
+        "speechTextHi": "उठने और टहलने का समय हो गया है! दो मिनट के लिए टहलिए और सक्रिय रहिए।",
         "enabled": True,
         "color": "emerald",
         "completedCountToday": 0,
@@ -105,6 +113,10 @@ DEFAULT_TASKS = [
         "endTime": "18:30",
         "intervalMinutes": 90,
         "soundTone": "bell",
+        "alertType": "both",
+        "speechLang": "both",
+        "speechTextEn": "Time to stretch your body! Roll your shoulders back and relax your muscles.",
+        "speechTextHi": "शरीर को स्ट्रेच करने का समय हो गया है! अपने कंधों और मांसपेशियों को आराम दीजिए।",
         "enabled": True,
         "color": "amber",
         "completedCountToday": 0,
@@ -206,6 +218,10 @@ class TaskModel(BaseModel):
     endTime: str = Field("18:00", description="HH:MM in 24hr format")
     intervalMinutes: int = Field(..., gt=0, le=1440)
     soundTone: str = Field("chime")
+    alertType: str = Field("both", description="'both', 'voice', or 'sound'")
+    speechLang: str = Field("both", description="'hi', 'en', or 'both'")
+    speechTextEn: Optional[str] = ""
+    speechTextHi: Optional[str] = ""
     enabled: bool = True
     color: str = Field("sky")
     completedCountToday: Optional[int] = 0

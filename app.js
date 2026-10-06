@@ -1,15 +1,135 @@
 /**
  * app.js - PulseRemind Interval Task Reminder Engine
  * Built for Anil Dutta - Google Projects
- * Web Audio API synthesizer, Interval Task Scheduler, PIN Security & Profile Management
+ * Web Audio API synthesizer, Web Speech Synthesis (Hindi & English Voice-Over),
+ * Interval Task Scheduler, PIN Security & Profile Management
  */
 
 // ==========================================
-// 1. SOUND & AUDIO SYNTHESIS ENGINE
+// 1. VOICE & SPEECH SYNTHESIS ENGINE (HINDI & ENGLISH)
+// ==========================================
+class VoiceEngine {
+  constructor() {
+    this.synth = window.speechSynthesis || null;
+    this.voices = [];
+    this.isSpeaking = false;
+    this.initVoices();
+    if (this.synth && this.synth.onvoiceschanged !== undefined) {
+      this.synth.onvoiceschanged = () => this.initVoices();
+    }
+  }
+
+  initVoices() {
+    if (!this.synth) return;
+    this.voices = this.synth.getVoices();
+  }
+
+  getVoice(langCode) {
+    if (!this.voices || this.voices.length === 0) {
+      this.initVoices();
+    }
+    const clean = (langCode || 'en').toLowerCase();
+    if (clean === 'hi' || clean.includes('hi')) {
+      // 1. Direct Hindi voice (Microsoft Heera, Google हिन्दी, etc.)
+      const hiVoice = this.voices.find(v => v.lang.toLowerCase().includes('hi'));
+      if (hiVoice) return hiVoice;
+      // 2. Fallback to Indian English (has natural Indian phonetics)
+      const indVoice = this.voices.find(v => v.lang.toLowerCase().includes('in'));
+      if (indVoice) return indVoice;
+    }
+    // English voice: prefer Indian/UK/US English
+    const enVoice = this.voices.find(v => v.lang.toLowerCase() === 'en-in') ||
+                    this.voices.find(v => v.lang.toLowerCase() === 'en-gb') ||
+                    this.voices.find(v => v.lang.toLowerCase().startsWith('en'));
+    return enVoice || null;
+  }
+
+  speak(text, lang = 'en', onDone = null) {
+    if (!this.synth || !text) {
+      if (onDone) onDone();
+      return;
+    }
+    try {
+      this.synth.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.92; // Clear, measured, pleasant cadence
+      utterance.pitch = 1.0;
+      utterance.lang = (lang === 'hi' || lang.includes('hi')) ? 'hi-IN' : 'en-US';
+
+      const matchedVoice = this.getVoice(lang);
+      if (matchedVoice) {
+        utterance.voice = matchedVoice;
+      }
+
+      utterance.onend = () => {
+        this.isSpeaking = false;
+        if (onDone) onDone();
+      };
+      utterance.onerror = (e) => {
+        this.isSpeaking = false;
+        if (onDone) onDone();
+      };
+
+      this.isSpeaking = true;
+      this.synth.speak(utterance);
+    } catch (e) {
+      console.warn('[VoiceEngine] Speech error:', e);
+      if (onDone) onDone();
+    }
+  }
+
+  speakSequence(items, onComplete = null) {
+    if (!items || items.length === 0) {
+      if (onComplete) onComplete();
+      return;
+    }
+    let idx = 0;
+    const playNext = () => {
+      if (idx >= items.length) {
+        if (onComplete) onComplete();
+        return;
+      }
+      const item = items[idx++];
+      this.speak(item.text, item.lang, () => {
+        setTimeout(playNext, 450); // slight pause between sentences
+      });
+    };
+    playNext();
+  }
+
+  speakTask(task, onDone = null) {
+    const lang = task.speechLang || 'both';
+    const textEn = task.speechTextEn || `Time to ${task.title}. ${task.description || ''}`;
+    const textHi = task.speechTextHi || `${task.title} का समय हो गया है।`;
+
+    if (lang === 'hi') {
+      this.speak(textHi, 'hi', onDone);
+    } else if (lang === 'en') {
+      this.speak(textEn, 'en', onDone);
+    } else {
+      // Bilingual mode: Speaks English prompt first, then Hindi prompt!
+      this.speakSequence([
+        { text: textEn, lang: 'en' },
+        { text: textHi, lang: 'hi' }
+      ], onDone);
+    }
+  }
+
+  stop() {
+    if (this.synth) {
+      this.synth.cancel();
+      this.isSpeaking = false;
+    }
+  }
+}
+
+// ==========================================
+// 2. SOUND & AUDIO SYNTHESIS ENGINE
 // ==========================================
 class SoundEngine {
   constructor() {
     this.ctx = null;
+    this.voice = new VoiceEngine();
     this.volume = 0.85;
     this.isMuted = false;
     this.isUnlocked = false;
@@ -48,6 +168,9 @@ class SoundEngine {
 
   toggleMute() {
     this.isMuted = !this.isMuted;
+    if (this.isMuted) {
+      this.voice.stop();
+    }
     return this.isMuted;
   }
 
@@ -287,20 +410,38 @@ class SoundEngine {
   startAlarm(task) {
     this.stopAlarm();
     this.activeTask = task;
+    const alertType = task.alertType || 'both'; // 'both', 'voice', or 'sound'
     const tone = task.soundTone || 'chime';
 
-    // Play initial burst
-    this.playTone(tone);
+    const triggerCycle = () => {
+      if (this.isMuted) return;
 
-    // Loop alarm sound every 3.5 seconds
-    this.activeAlarmInterval = setInterval(() => {
-      this.playTone(tone);
-    }, 3500);
+      if (alertType === 'sound') {
+        this.playTone(tone);
+      } else if (alertType === 'voice') {
+        this.voice.speakTask(task);
+      } else {
+        // 'both': First play an attention chime, followed immediately by the spoken voice announcement!
+        this.playTone(tone);
+        setTimeout(() => {
+          if (this.activeTask && this.activeTask.id === task.id && !this.isMuted) {
+            this.voice.speakTask(task);
+          }
+        }, 900);
+      }
+    };
 
-    // Safety timeout: stop continuous ringing after 45 seconds if unacknowledged
+    // Immediate first trigger
+    triggerCycle();
+
+    // Loop interval: if voice is involved, allow 8.5s for speech; if sound only, 3.5s
+    const repeatIntervalMs = (alertType === 'sound') ? 3500 : 8500;
+    this.activeAlarmInterval = setInterval(triggerCycle, repeatIntervalMs);
+
+    // Safety timeout: stop continuous ringing after 60 seconds if unacknowledged
     this.alarmTimeout = setTimeout(() => {
       this.stopAlarm();
-    }, 45000);
+    }, 60000);
   }
 
   stopAlarm() {
@@ -312,12 +453,15 @@ class SoundEngine {
       clearTimeout(this.alarmTimeout);
       this.alarmTimeout = null;
     }
+    if (this.voice) {
+      this.voice.stop();
+    }
     this.activeTask = null;
   }
 }
 
 // ==========================================
-// 2. DATA STORE & API CLIENT
+// 3. DATA STORE & API CLIENT
 // ==========================================
 class DataStore {
   constructor() {
@@ -529,6 +673,10 @@ class DataStore {
         endTime: "19:30",
         intervalMinutes: 45,
         soundTone: "marimba",
+        alertType: "both",
+        speechLang: "both",
+        speechTextEn: "Time to drink water! Please take a glass of fresh water to stay hydrated.",
+        speechTextHi: "पानी पीने का समय हो गया है! कृपया एक गिलास ताज़ा पानी पिएं और स्वस्थ रहें।",
         enabled: true,
         color: "sky",
         completedCountToday: 0,
@@ -547,6 +695,10 @@ class DataStore {
         endTime: "18:00",
         intervalMinutes: 60,
         soundTone: "digital",
+        alertType: "both",
+        speechLang: "both",
+        speechTextEn: "Time to stand up and walk! Take a 2-minute walking break to improve blood circulation.",
+        speechTextHi: "उठने और टहलने का समय हो गया है! दो मिनट के लिए टहलिए और सक्रिय रहिए।",
         enabled: true,
         color: "emerald",
         completedCountToday: 0,
@@ -565,6 +717,10 @@ class DataStore {
         endTime: "18:30",
         intervalMinutes: 90,
         soundTone: "bell",
+        alertType: "both",
+        speechLang: "both",
+        speechTextEn: "Time to stretch your body! Roll your shoulders back and relax your muscles.",
+        speechTextHi: "शरीर को स्ट्रेच करने का समय हो गया है! अपने कंधों और मांसपेशियों को आराम दीजिए।",
         enabled: true,
         color: "amber",
         completedCountToday: 0,
@@ -731,7 +887,7 @@ class DataStore {
 }
 
 // ==========================================
-// 3. TASK SCHEDULER & INTERVAL ENGINE
+// 4. TASK SCHEDULER & INTERVAL ENGINE
 // ==========================================
 class TaskScheduler {
   constructor(soundEngine, dataStore, onAlarmTriggered, onTick) {
@@ -844,14 +1000,12 @@ class TaskScheduler {
     let anchorMs = null;
     if (task.lastCompletedAt) {
       const lastCompletedDate = new Date(task.lastCompletedAt);
-      // Check if completion was today
       if (lastCompletedDate.toDateString() === now.toDateString()) {
         anchorMs = lastCompletedDate.getTime();
       }
     }
 
     if (!anchorMs) {
-      // Anchor is start of day's window
       const windowStartDate = new Date(now);
       windowStartDate.setHours(startH, startM, 0, 0);
       anchorMs = windowStartDate.getTime();
@@ -914,7 +1068,7 @@ class TaskScheduler {
 }
 
 // ==========================================
-// 4. MAIN APP CONTROLLER & UI
+// 5. MAIN APP CONTROLLER & UI
 // ==========================================
 class PulseRemindApp {
   constructor() {
@@ -1001,11 +1155,11 @@ class PulseRemindApp {
       icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />`;
     } else if (this.sound.isUnlocked) {
       btn.className = 'flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-700/50 hover:bg-emerald-800/50 transition cursor-pointer';
-      label.textContent = 'Sound Ready';
+      label.textContent = 'Sound & Voice Ready';
       icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />`;
     } else {
       btn.className = 'flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-900/40 text-amber-300 border border-amber-700/50 hover:bg-amber-800/50 transition cursor-pointer animate-pulse';
-      label.textContent = 'Click to Unmute Audio';
+      label.textContent = 'Click to Enable Audio/Voice';
       icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />`;
     }
   }
@@ -1040,7 +1194,6 @@ class PulseRemindApp {
     if (nameEl) nameEl.textContent = prof.name;
     if (avatarEl) avatarEl.textContent = prof.avatar || '👤';
 
-    // PIN lock screen header info
     const lockName = document.getElementById('lockProfileName');
     const lockAvatar = document.getElementById('lockProfileAvatar');
     if (lockName) lockName.textContent = prof.name;
@@ -1096,7 +1249,6 @@ class PulseRemindApp {
     this.currentPinInput += char;
     this.updatePinDots();
 
-    // Auto submit if 4 digits entered
     if (this.currentPinInput.length === 4) {
       setTimeout(() => this.submitPin(), 120);
     }
@@ -1131,11 +1283,9 @@ class PulseRemindApp {
 
     const isValid = await this.dataStore.verifyPin(profile.id, this.currentPinInput);
     if (isValid) {
-      // Play soft unlock chime
       this.sound.playTone('marimba', 0.4);
       this.unlockApp();
     } else {
-      // Shake animation & error message
       const keypad = document.getElementById('pinKeypadCard');
       const errText = document.getElementById('pinErrorMessage');
       if (keypad) {
@@ -1148,7 +1298,6 @@ class PulseRemindApp {
       }
       this.currentPinInput = '';
       this.updatePinDots();
-      // Error buzz sound
       this.sound.playTone('urgent', 0.2);
     }
   }
@@ -1160,7 +1309,7 @@ class PulseRemindApp {
     console.log(`[PulseRemind] 🔔 ALARM TRIGGERED FOR TASK: ${task.title}`);
     this.activeAlarmTask = task;
 
-    // 1. Play Sound in Loop
+    // 1. Play Sound & Spoken Voice
     this.sound.startAlarm(task);
 
     // 2. Browser Notification if tab not focused
@@ -1176,8 +1325,12 @@ class PulseRemindApp {
   fireBrowserNotification(task) {
     if ('Notification' in window && Notification.permission === 'granted') {
       try {
+        const bodyText = (task.speechLang === 'hi' && task.speechTextHi)
+          ? task.speechTextHi
+          : (task.speechTextEn || task.description || `Time to ${task.title}!`);
+
         const notif = new Notification(`⏰ PulseRemind: ${task.title}`, {
-          body: task.description || `It is time to ${task.title}! Every ${task.intervalMinutes} mins interval.`,
+          body: bodyText,
           icon: '/static/favicon.ico',
           tag: `pulse-alarm-${task.id}`,
           requireInteraction: true
@@ -1216,8 +1369,22 @@ class PulseRemindApp {
     document.getElementById('alarmModalTitle').textContent = task.title;
     document.getElementById('alarmModalCategory').textContent = task.category || 'Routine Task';
     document.getElementById('alarmModalIcon').textContent = task.icon || '⏰';
-    document.getElementById('alarmModalDescription').textContent = task.description || 'Time to complete your scheduled habit interval.';
     document.getElementById('alarmModalInterval').textContent = `Repeats every ${task.intervalMinutes} mins (${task.startTime} - ${task.endTime})`;
+
+    // Spoken Voice Announcements Preview in Modal
+    const voiceCard = document.getElementById('alarmModalVoiceCard');
+    const enTextEl = document.getElementById('alarmModalVoiceEn');
+    const hiTextEl = document.getElementById('alarmModalVoiceHi');
+
+    if (voiceCard) {
+      if (task.alertType === 'sound') {
+        voiceCard.classList.add('hidden');
+      } else {
+        voiceCard.classList.remove('hidden');
+        if (enTextEl) enTextEl.textContent = task.speechTextEn || `Time to ${task.title}!`;
+        if (hiTextEl) hiTextEl.textContent = task.speechTextHi || `${task.title} का समय हो गया है!`;
+      }
+    }
 
     modal.classList.remove('hidden');
     modal.classList.add('flex');
@@ -1242,7 +1409,6 @@ class PulseRemindApp {
     if (!this.activeAlarmTask) return;
     const task = this.activeAlarmTask;
 
-    // Stop alarm sound
     this.sound.stopAlarm();
     this.stopTitleBlink();
 
@@ -1256,7 +1422,6 @@ class PulseRemindApp {
       this.scheduler.clearAlarmedState(task.id);
     }
 
-    // Close modal
     this.dismissAlarmModal();
   }
 
@@ -1327,7 +1492,6 @@ class PulseRemindApp {
 
     let tasks = this.dataStore.tasks;
 
-    // Apply Filter
     if (this.activeFilter === 'active') {
       tasks = tasks.filter(t => {
         const state = this.latestTaskStates.find(s => s.task.id === t.id);
@@ -1339,7 +1503,6 @@ class PulseRemindApp {
       tasks = tasks.filter(t => (t.completedCountToday || 0) > 0);
     }
 
-    // Apply Search
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase();
       tasks = tasks.filter(t => t.title.toLowerCase().includes(q) || (t.category && t.category.toLowerCase().includes(q)));
@@ -1389,6 +1552,19 @@ class PulseRemindApp {
 
     const remainingStr = this.scheduler ? this.scheduler.formatDuration(state.secondsRemaining) : '--:--';
 
+    // Voice announcement badge & summary
+    const alertType = task.alertType || 'both';
+    let voiceBadge = '';
+    if (alertType === 'voice') {
+      const langName = task.speechLang === 'hi' ? 'Hindi (हिंदी)' : (task.speechLang === 'en' ? 'English' : 'English + Hindi');
+      voiceBadge = `<span class="inline-flex items-center gap-1 text-[11px] text-indigo-400 font-medium">🗣️ Voice: ${langName}</span>`;
+    } else if (alertType === 'both') {
+      const langName = task.speechLang === 'hi' ? 'Hindi' : (task.speechLang === 'en' ? 'English' : 'Eng + Hindi');
+      voiceBadge = `<span class="inline-flex items-center gap-1 text-[11px] text-indigo-400 font-medium">🎵 Chime + 🗣️ ${langName} Voice</span>`;
+    } else {
+      voiceBadge = `<span class="inline-flex items-center gap-1 text-[11px] text-slate-400 font-medium">🔔 Chime Only</span>`;
+    }
+
     return `
       <div id="task-card-${task.id}" class="glass-card rounded-2xl p-5 border ${accent.border} flex flex-col justify-between relative overflow-hidden group">
         <!-- Top bar: Category + Status Badge -->
@@ -1404,7 +1580,7 @@ class PulseRemindApp {
         </div>
 
         <!-- Task Title & Note -->
-        <div class="mb-4">
+        <div class="mb-3">
           <h3 class="text-lg font-bold text-white group-hover:text-sky-300 transition flex items-center gap-2">
             ${task.title}
           </h3>
@@ -1413,8 +1589,24 @@ class PulseRemindApp {
           </p>
         </div>
 
+        <!-- Spoken Voice Snippet Preview -->
+        ${(task.speechTextHi || task.speechTextEn) ? `
+          <div class="bg-indigo-950/30 border border-indigo-900/50 rounded-xl p-2.5 mb-3 text-[11px] text-indigo-200">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-indigo-400 font-semibold flex items-center gap-1">
+                <span>🗣️ Spoken Voice-Over</span>
+              </span>
+              <button onclick="window.app.previewTaskSpeech('${task.id}')" class="text-[10px] text-sky-400 hover:text-white font-bold bg-indigo-900/60 px-2 py-0.5 rounded cursor-pointer">
+                ▶ Listen
+              </button>
+            </div>
+            ${task.speechTextHi ? `<div class="truncate text-slate-300">🇮🇳 <span class="font-sans">${task.speechTextHi}</span></div>` : ''}
+            ${task.speechTextEn ? `<div class="truncate text-slate-400 text-[10px]">🇬🇧 ${task.speechTextEn}</div>` : ''}
+          </div>
+        ` : ''}
+
         <!-- Schedule Specs (Window & Interval) -->
-        <div class="grid grid-cols-2 gap-2 text-xs bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/80 mb-4">
+        <div class="grid grid-cols-2 gap-2 text-xs bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/80 mb-3">
           <div>
             <span class="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Active Window</span>
             <span class="text-slate-200 font-mono font-medium">${task.startTime} — ${task.endTime}</span>
@@ -1445,15 +1637,15 @@ class PulseRemindApp {
           </div>
 
           <div class="flex items-center justify-between mt-2 pt-1 border-t border-slate-800/60 text-[11px] text-slate-400">
-            <span>Completed today: <strong class="text-emerald-400">${task.completedCountToday || 0}x</strong></span>
-            <span class="text-slate-500">Tone: ${this.formatToneName(task.soundTone)}</span>
+            <span>Completed: <strong class="text-emerald-400">${task.completedCountToday || 0}x</strong> today</span>
+            ${voiceBadge}
           </div>
         </div>
 
         <!-- Action Buttons -->
         <div class="flex items-center justify-between gap-1.5 pt-2 border-t border-slate-800/80">
           <div class="flex items-center gap-1">
-            <button onclick="window.app.triggerTaskNow('${task.id}')" title="Trigger Alarm Sound Now" class="p-2 rounded-lg bg-sky-600/30 hover:bg-sky-600/50 text-sky-300 border border-sky-500/40 text-xs font-medium transition cursor-pointer flex items-center gap-1">
+            <button onclick="window.app.triggerTaskNow('${task.id}')" title="Trigger Alarm & Spoken Voice Now" class="p-2 rounded-lg bg-sky-600/30 hover:bg-sky-600/50 text-sky-300 border border-sky-500/40 text-xs font-medium transition cursor-pointer flex items-center gap-1">
               🔔 Ring
             </button>
             <button onclick="window.app.quickLogCompletion('${task.id}')" title="Mark +1 Done" class="p-2 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 text-xs font-medium transition cursor-pointer flex items-center gap-1">
@@ -1539,6 +1731,25 @@ class PulseRemindApp {
     }
   }
 
+  previewTaskSpeech(taskId) {
+    const task = this.dataStore.tasks.find(t => t.id === taskId);
+    if (task) {
+      this.sound.initAudio();
+      this.sound.voice.speakTask(task);
+    }
+  }
+
+  previewVoice(lang) {
+    this.sound.initAudio();
+    if (lang === 'hi') {
+      const text = document.getElementById('taskFormSpeechHi').value || 'पानी पीने का समय हो गया है!';
+      this.sound.voice.speak(text, 'hi');
+    } else {
+      const text = document.getElementById('taskFormSpeechEn').value || 'Time to drink water! Stay hydrated.';
+      this.sound.voice.speak(text, 'en');
+    }
+  }
+
   async quickLogCompletion(taskId) {
     this.sound.playTone('completion', 0.85);
     this.fireConfetti();
@@ -1572,7 +1783,7 @@ class PulseRemindApp {
   }
 
   async restoreDefaults() {
-    if (confirm('Restore the 3 default tasks (Drink Water, Standup & Walk, Stretch Body)?')) {
+    if (confirm('Restore the 3 default tasks with Hindi and English voice reminders?')) {
       const profId = this.dataStore.currentProfile ? this.dataStore.currentProfile.id : 'default-profile';
       await this.dataStore.resetDefaultTasks(profId);
       this.renderTasks();
@@ -1596,6 +1807,10 @@ class PulseRemindApp {
     let endTime = '18:00';
     let interval = 45;
     let soundTone = 'chime';
+    let alertType = 'both';
+    let speechLang = 'both';
+    let speechEn = '';
+    let speechHi = '';
     let color = 'sky';
 
     if (templateName === 'water') {
@@ -1607,6 +1822,10 @@ class PulseRemindApp {
       endTime = '19:30';
       interval = 45;
       soundTone = 'marimba';
+      alertType = 'both';
+      speechLang = 'both';
+      speechEn = 'Time to drink water! Please take a glass of fresh water to stay hydrated.';
+      speechHi = 'पानी पीने का समय हो गया है! कृपया एक गिलास ताज़ा पानी पिएं और स्वस्थ रहें।';
       color = 'sky';
     } else if (templateName === 'walk') {
       title = 'Standup and walk';
@@ -1617,6 +1836,10 @@ class PulseRemindApp {
       endTime = '18:00';
       interval = 60;
       soundTone = 'digital';
+      alertType = 'both';
+      speechLang = 'both';
+      speechEn = 'Time to stand up and walk! Take a 2-minute walking break to improve blood circulation.';
+      speechHi = 'उठने और टहलने का समय हो गया है! दो मिनट के लिए टहलिए और सक्रिय रहिए।';
       color = 'emerald';
     } else if (templateName === 'stretch') {
       title = 'Stretch your body';
@@ -1627,6 +1850,10 @@ class PulseRemindApp {
       endTime = '18:30';
       interval = 90;
       soundTone = 'bell';
+      alertType = 'both';
+      speechLang = 'both';
+      speechEn = 'Time to stretch your body! Roll your shoulders back and relax your muscles.';
+      speechHi = 'शरीर को स्ट्रेच करने का समय हो गया है! अपने कंधों और मांसपेशियों को आराम दीजिए।';
       color = 'amber';
     } else if (templateName === 'eye') {
       title = '20-20-20 Eye Rest';
@@ -1637,6 +1864,10 @@ class PulseRemindApp {
       endTime = '18:00';
       interval = 20;
       soundTone = 'echo';
+      alertType = 'both';
+      speechLang = 'both';
+      speechEn = 'Time to rest your eyes! Look at an object 20 feet away for 20 seconds.';
+      speechHi = 'आंखों को आराम देने का समय हो गया है! बीस फीट दूर देखकर आंखों को विश्राम दें।';
       color = 'purple';
     } else if (templateName === 'posture') {
       title = 'Posture Check & Deep Breath';
@@ -1647,6 +1878,10 @@ class PulseRemindApp {
       endTime = '18:00';
       interval = 30;
       soundTone = 'harpsichord';
+      alertType = 'both';
+      speechLang = 'both';
+      speechEn = 'Posture check! Sit straight and take three slow, deep breaths.';
+      speechHi = 'अपनी मुद्रा ठीक करें! सीधे बैठिए और तीन गहरी सांसें लीजिए।';
       color = 'rose';
     }
 
@@ -1658,6 +1893,10 @@ class PulseRemindApp {
     document.getElementById('taskFormEndTime').value = endTime;
     document.getElementById('taskFormInterval').value = interval;
     document.getElementById('taskFormSoundTone').value = soundTone;
+    document.getElementById('taskFormAlertType').value = alertType;
+    document.getElementById('taskFormSpeechLang').value = speechLang;
+    document.getElementById('taskFormSpeechEn').value = speechEn;
+    document.getElementById('taskFormSpeechHi').value = speechHi;
     document.getElementById('taskFormColor').value = color;
 
     const modal = document.getElementById('taskEditModal');
@@ -1680,6 +1919,10 @@ class PulseRemindApp {
     document.getElementById('taskFormEndTime').value = task.endTime || '18:00';
     document.getElementById('taskFormInterval').value = task.intervalMinutes || 45;
     document.getElementById('taskFormSoundTone').value = task.soundTone || 'chime';
+    document.getElementById('taskFormAlertType').value = task.alertType || 'both';
+    document.getElementById('taskFormSpeechLang').value = task.speechLang || 'both';
+    document.getElementById('taskFormSpeechEn').value = task.speechTextEn || '';
+    document.getElementById('taskFormSpeechHi').value = task.speechTextHi || '';
     document.getElementById('taskFormColor').value = task.color || 'sky';
 
     const modal = document.getElementById('taskEditModal');
@@ -1710,6 +1953,10 @@ class PulseRemindApp {
       endTime: document.getElementById('taskFormEndTime').value || '18:00',
       intervalMinutes: parseInt(document.getElementById('taskFormInterval').value, 10) || 45,
       soundTone: document.getElementById('taskFormSoundTone').value || 'chime',
+      alertType: document.getElementById('taskFormAlertType').value || 'both',
+      speechLang: document.getElementById('taskFormSpeechLang').value || 'both',
+      speechTextEn: document.getElementById('taskFormSpeechEn').value.trim(),
+      speechTextHi: document.getElementById('taskFormSpeechHi').value.trim(),
       color: document.getElementById('taskFormColor').value || 'sky',
       enabled: true
     };
@@ -1902,7 +2149,6 @@ class PulseRemindApp {
   // EVENT BINDINGS
   // ==========================================
   bindEvents() {
-    // Keyboard PIN entries
     window.addEventListener('keydown', (e) => {
       if (!this.isAppLocked) return;
 
@@ -1917,7 +2163,6 @@ class PulseRemindApp {
       }
     });
 
-    // Audio status toggle button
     const audioBtn = document.getElementById('audioStatusBtn');
     if (audioBtn) {
       audioBtn.addEventListener('click', () => {
@@ -1927,7 +2172,6 @@ class PulseRemindApp {
       });
     }
 
-    // Volume Slider
     const volSlider = document.getElementById('globalVolumeSlider');
     if (volSlider) {
       volSlider.addEventListener('input', (e) => {
@@ -1936,7 +2180,6 @@ class PulseRemindApp {
       });
     }
 
-    // Lock Now Button in Navbar
     const lockBtn = document.getElementById('lockAppNavBtn');
     if (lockBtn) {
       lockBtn.addEventListener('click', () => {
@@ -1944,7 +2187,6 @@ class PulseRemindApp {
       });
     }
 
-    // Filter Buttons
     document.querySelectorAll('.filter-tab-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         document.querySelectorAll('.filter-tab-btn').forEach(b => {
@@ -1958,7 +2200,6 @@ class PulseRemindApp {
       });
     });
 
-    // Search Input
     const searchInput = document.getElementById('taskSearchInput');
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
@@ -1967,13 +2208,11 @@ class PulseRemindApp {
       });
     }
 
-    // Task Form submit
     const taskForm = document.getElementById('taskFormElement');
     if (taskForm) {
       taskForm.addEventListener('submit', (e) => this.saveTaskFromForm(e));
     }
 
-    // New Profile Form submit
     const newProfForm = document.getElementById('newProfileFormElement');
     if (newProfForm) {
       newProfForm.addEventListener('submit', (e) => this.submitCreateProfile(e));
