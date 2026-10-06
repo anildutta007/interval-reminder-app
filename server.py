@@ -10,7 +10,11 @@ import webbrowser
 import threading
 import time
 import subprocess
-import winsound
+try:
+    import winsound
+except (ImportError, ModuleNotFoundError):
+    winsound = None
+
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 
@@ -22,11 +26,21 @@ from pydantic import BaseModel, Field
 import uvicorn
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
+IS_SERVERLESS = bool(os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
+
+if IS_SERVERLESS:
+    DATA_DIR = "/tmp/data"
+else:
+    DATA_DIR = os.path.join(BASE_DIR, "data")
+
+try:
+    os.makedirs(DATA_DIR, exist_ok=True)
+except OSError:
+    DATA_DIR = "/tmp/data"
+    os.makedirs(DATA_DIR, exist_ok=True)
+
 PROFILES_FILE = os.path.join(DATA_DIR, "profiles.json")
 TASKS_FILE = os.path.join(DATA_DIR, "tasks.json")
-
-os.makedirs(DATA_DIR, exist_ok=True)
 
 app = FastAPI(
     title="PulseRemind - Interval Task & Habit Reminder Alarm Hub",
@@ -461,10 +475,11 @@ reopen_browser_on_alarm = True
 
 def play_system_chime():
     try:
-        # Melodic 4-note chime sequence (D5, F#5, A5, D6)
-        notes = [(587, 140), (740, 140), (880, 160), (1175, 320)]
-        for freq, dur in notes:
-            winsound.Beep(freq, dur)
+        if winsound:
+            # Melodic 4-note chime sequence (D5, F#5, A5, D6)
+            notes = [(587, 140), (740, 140), (880, 160), (1175, 320)]
+            for freq, dur in notes:
+                winsound.Beep(freq, dur)
     except Exception as e:
         print(f"[BackgroundSound] Error: {e}")
 
@@ -638,7 +653,8 @@ def background_alarm_worker():
 
 @app.on_event("startup")
 def start_daemon_on_launch():
-    threading.Thread(target=background_alarm_worker, daemon=True).start()
+    if not IS_SERVERLESS:
+        threading.Thread(target=background_alarm_worker, daemon=True).start()
 
 @app.post("/api/heartbeat")
 async def client_heartbeat():
