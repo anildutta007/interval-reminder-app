@@ -73,19 +73,17 @@ Double-click `run_reminder.bat` in `c:\Anil Google Projects\`:
 c:\Anil Google Projects\run_reminder.bat
 ```
 
-### Method 3: Mobile Phone Usage (iPhone / Android)
-You can open PulseRemind on any smartphone connected to the same Wi-Fi network:
-1. Find your PC's IP address (e.g. `http://192.168.0.80:8050`).
-2. Open Safari (iOS) or Chrome (Android) on your mobile phone and browse to `http://192.168.0.80:8050`.
-3. **Desk Mode (Screen Wake Lock)**: Tap the **"📱 Desk Mode"** button at the top header when keeping your phone on a charging stand or desk dock. This prevents the phone screen from sleeping and allows alarms and Hindi/English voice announcements to speak continuously!
-4. **Install as App (PWA)**: Tap **Share -> Add to Home Screen** (iOS) or **Install App** (Android) for full-screen native mobile experience.
-5. **PC + Phone Remote Hub**: Even if your phone screen turns off, the PC background daemon handles the audio/voice while your phone acts as a remote dashboard.
+### Multi-User Profiles on PC
+Multiple people in your home can share the web app on your PC:
+1. Each person can switch or create their own profile directly from the top navigation bar or from the PIN lock screen via **`👥 Switch User`** or **`✨ + New Profile`**.
+2. Each profile has its own 4-digit security PIN to protect personal tasks and settings.
+3. Every profile maintains its own custom tasks, start/end windows, intervals, completion statistics, and Hindi/English voice announcements.
 
 ---
 
 ## 🛠️ Technology Stack
 - **Backend**: Python 3, FastAPI, Uvicorn, Pydantic, Windows SAPI / Beep
-- **Frontend**: HTML5, Modern ES6 JavaScript, Tailwind CSS (CDN), Web Audio API, Web Speech API (`hi-IN`, `en-US`), Screen Wake Lock API
-- **Mobile**: Progressive Web App (PWA) Manifest, Service Worker (`sw.js`), Touch Haptics
+- **Frontend**: HTML5, Modern ES6 JavaScript, Tailwind CSS (CDN), Web Audio API, Web Speech API (`hi-IN`, `en-US`)
+- **Security & Multi-User**: Salted SHA-256 PIN hashing, Per-Profile task isolation
 - **Animations**: CSS3 Glassmorphism, Keyframes, Canvas Confetti
 - **Storage**: Persistent JSON (`data/profiles.json`, `data/tasks.json`) + Client-side `localStorage` sync

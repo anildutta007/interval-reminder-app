@@ -118,21 +118,36 @@ class TestPulseRemind(unittest.TestCase):
         self.assertEqual(res_cfg.status_code, 200)
         self.assertTrue(res_cfg.json()["reopenBrowserOnAlarm"])
 
-    def test_mobile_pwa_endpoints(self):
-        # 1. Manifest
-        res_m = self.client.get("/manifest.json")
-        self.assertEqual(res_m.status_code, 200)
-        self.assertEqual(res_m.json()["short_name"], "PulseRemind")
+    def test_multi_user_profile_lifecycle(self):
+        # 1. Create a new user profile
+        new_prof_payload = {
+            "name": "Priya",
+            "avatar": "🌸",
+            "pin": "5678",
+            "pinEnabled": True
+        }
+        res_create = self.client.post("/api/profiles", json=new_prof_payload)
+        self.assertEqual(res_create.status_code, 200)
+        created_prof = res_create.json()
+        prof_id = created_prof["id"]
+        self.assertEqual(created_prof["name"], "Priya")
 
-        # 2. Service Worker
-        res_sw = self.client.get("/sw.js")
-        self.assertEqual(res_sw.status_code, 200)
-        self.assertIn("PulseRemind Mobile PWA", res_sw.text)
+        # 2. Verify new profile has its own initialized tasks
+        res_tasks = self.client.get(f"/api/tasks?profileId={prof_id}")
+        self.assertEqual(res_tasks.status_code, 200)
+        tasks = res_tasks.json()
+        self.assertGreaterEqual(len(tasks), 3)
 
-        # 3. Mobile PWA Icons
-        res_i192 = self.client.get("/icon-192.png")
-        self.assertEqual(res_i192.status_code, 200)
-        self.assertEqual(res_i192.headers["content-type"], "image/png")
+        # 3. Verify PIN verification works for the new user
+        res_pin = self.client.post("/api/verify-pin", json={
+            "profileId": prof_id,
+            "pin": "5678"
+        })
+        self.assertEqual(res_pin.status_code, 200)
+        self.assertTrue(res_pin.json()["success"])
+
+        # 4. Cleanup test profile
+        self.client.delete(f"/api/profiles/{prof_id}")
 
 if __name__ == "__main__":
     unittest.main()
