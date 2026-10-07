@@ -208,6 +208,19 @@
         </div>
       </div>
 
+      <!-- Top Navigation Tabs: Reminders vs AI Tools -->
+      <nav class="flex items-center p-1 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-inner">
+        <button id="navTabReminders" onclick="window.app.switchMainTab('reminders')" class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer bg-sky-600 text-white shadow-sm" title="Interval task alarms and habit routines">
+          <span>⏰</span>
+          <span class="hidden sm:inline">Reminders</span>
+        </button>
+        <button id="navTabAiTools" onclick="window.app.switchMainTab('aiTools')" class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800/80" title="Curated master collection of 37 AI tools">
+          <span>🤖</span>
+          <span>AI Tools</span>
+          <span class="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">37</span>
+        </button>
+      </nav>
+
       <!-- Live Clock & Date -->
       <div class="hidden md:flex flex-col items-center justify-center px-4 py-1.5 rounded-2xl bg-slate-900/80 border border-slate-800">
         <div id="liveClockText" class="font-mono text-base font-bold text-sky-400 tracking-wider">--:--:--</div>
@@ -270,8 +283,11 @@
   <!-- ========================================================= -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     
-    <!-- Hero / Summary Widget Bar -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <!-- VIEW 1: REMINDERS & HABITS DASHBOARD -->
+    <div id="remindersView" class="space-y-8">
+      
+      <!-- Hero / Summary Widget Bar -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
       
       <!-- Summary Card 1: Active Tasks Running -->
       <div class="glass-panel p-5 rounded-3xl border border-slate-800 relative overflow-hidden flex items-center justify-between">
@@ -393,6 +409,128 @@
     <!-- Dynamic Task Grid Container -->
     <div id="taskGridContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <!-- Task cards rendered by app.js -->
+    </div>
+
+    </div>
+    <!-- END OF VIEW 1: REMINDERS -->
+
+    <!-- ========================================================= -->
+    <!-- VIEW 2: AI TOOLS DIRECTORY & EXCEL SPREADSHEET RESOURCE   -->
+    <!-- ========================================================= -->
+    <div id="aiToolsView" class="hidden space-y-6">
+      
+      <!-- AI Tools Banner -->
+      <div class="glass-panel p-6 sm:p-8 rounded-3xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/40 via-slate-900/70 to-purple-950/30 relative overflow-hidden shadow-2xl">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div class="space-y-2">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              <span>⚡ Curated Master Resource</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+              <span>37 Productivity & AI Tools</span>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold font-display text-white tracking-tight flex items-center gap-2.5">
+              <span>🤖 AI Tools Hub & Directory</span>
+            </h2>
+            <p class="text-sm text-slate-300 max-w-2xl leading-relaxed">
+              Curated master collection of top AI assistants, real-time speech dictation, generative video studios, image enhancers, developer engines, and workflow automation platforms.
+            </p>
+          </div>
+          
+          <!-- Actions: Download Excel CSV & Copy All Links -->
+          <div class="flex flex-wrap items-center gap-3">
+            <a href="/ai_tools.csv" download="ai_tools.csv" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-lg shadow-emerald-600/25 transition cursor-pointer" title="Download the original spreadsheet as a CSV / Excel file">
+              <span>📊</span>
+              <span>Download Excel (CSV)</span>
+            </a>
+            <button onclick="window.app.copyAllAiToolsLinks()" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs transition cursor-pointer" title="Copy all 37 tool names and URLs to clipboard">
+              <span>📋</span>
+              <span>Copy All Links</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search, Categories & View Mode Switcher -->
+      <div class="p-4 rounded-3xl bg-slate-900/60 border border-slate-800/80 glass-panel space-y-3">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+          
+          <!-- Search Bar -->
+          <div class="relative w-full sm:w-80">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400 text-xs">🔍</span>
+            <input type="text" id="aiToolsSearchInput" oninput="window.app.handleAiToolsSearch(this.value)" placeholder="Search 37 AI tools by name or description..." class="w-full bg-slate-950 border border-slate-700/80 rounded-2xl pl-9 pr-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
+          </div>
+
+          <!-- View Mode: Cards vs Excel Table -->
+          <div class="flex items-center gap-1.5 p-1 bg-slate-950 rounded-2xl border border-slate-800 self-end sm:self-auto">
+            <button id="aiViewGridBtn" onclick="window.app.setAiToolsViewMode('grid')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white transition cursor-pointer">
+              <span>🗂️</span>
+              <span>Cards Grid</span>
+            </button>
+            <button id="aiViewTableBtn" onclick="window.app.setAiToolsViewMode('table')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition cursor-pointer">
+              <span>📑</span>
+              <span>Excel Table</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Category Pills -->
+        <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-800/60" id="aiToolsCategoryBar">
+          <button onclick="window.app.setAiToolsCategory('all')" data-cat="all" class="ai-cat-pill px-3 py-1 rounded-xl text-xs font-semibold bg-indigo-600 text-white transition cursor-pointer">
+            All (37)
+          </button>
+          <button onclick="window.app.setAiToolsCategory('voice')" data-cat="voice" class="ai-cat-pill px-3 py-1 rounded-xl text-xs font-semibold bg-slate-800/80 text-slate-300 hover:text-white transition cursor-pointer">
+            🎙️ Speech & Voice
+          </button>
+          <button onclick="window.app.setAiToolsCategory('assistant')" data-cat="assistant" class="ai-cat-pill px-3 py-1 rounded-xl text-xs font-semibold bg-slate-800/80 text-slate-300 hover:text-white transition cursor-pointer">
+            💬 Assistants & LLMs
+          </button>
+          <button onclick="window.app.setAiToolsCategory('design')" data-cat="design" class="ai-cat-pill px-3 py-1 rounded-xl text-xs font-semibold bg-slate-800/80 text-slate-300 hover:text-white transition cursor-pointer">
+            🎨 Image & Design
+          </button>
+          <button onclick="window.app.setAiToolsCategory('video')" data-cat="video" class="ai-cat-pill px-3 py-1 rounded-xl text-xs font-semibold bg-slate-800/80 text-slate-300 hover:text-white transition cursor-pointer">
+            🎬 Video & 3D
+          </button>
+          <button onclick="window.app.setAiToolsCategory('content')" data-cat="content" class="ai-cat-pill px-3 py-1 rounded-xl text-xs font-semibold bg-slate-800/80 text-slate-300 hover:text-white transition cursor-pointer">
+            ✍️ Writing & Marketing
+          </button>
+          <button onclick="window.app.setAiToolsCategory('dev')" data-cat="dev" class="ai-cat-pill px-3 py-1 rounded-xl text-xs font-semibold bg-slate-800/80 text-slate-300 hover:text-white transition cursor-pointer">
+            💻 Code & Dev
+          </button>
+          <button onclick="window.app.setAiToolsCategory('research')" data-cat="research" class="ai-cat-pill px-3 py-1 rounded-xl text-xs font-semibold bg-slate-800/80 text-slate-300 hover:text-white transition cursor-pointer">
+            🔍 Research & Ideas
+          </button>
+        </div>
+      </div>
+
+      <!-- Result Counter -->
+      <div class="flex items-center justify-between text-xs text-slate-400 px-1">
+        <div>Showing <span id="aiToolsResultCount" class="font-bold text-white">37</span> tools</div>
+        <div class="text-[11px] text-slate-500">Links open directly in a new browser tab</div>
+      </div>
+
+      <!-- Mode 1: Cards Grid Container -->
+      <div id="aiToolsGridContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <!-- Mode 2: Excel Table Container -->
+      <div id="aiToolsTableContainer" class="hidden overflow-x-auto rounded-3xl border border-slate-800 bg-slate-900/60 glass-panel shadow-xl">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="border-b border-slate-800 bg-slate-950/90 text-slate-400 uppercase font-bold tracking-wider text-[11px]">
+              <th class="py-3.5 px-4 w-12 text-center">#</th>
+              <th class="py-3.5 px-4 w-48">Tool Name</th>
+              <th class="py-3.5 px-4 w-36">Category</th>
+              <th class="py-3.5 px-4">Description / Purpose</th>
+              <th class="py-3.5 px-4 w-44 text-right">Direct Link</th>
+            </tr>
+          </thead>
+          <tbody id="aiToolsTableBody" class="divide-y divide-slate-800/60 text-slate-300">
+            <!-- Injected via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
     </div>
 
   </main>

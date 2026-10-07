@@ -1083,6 +1083,308 @@ class TaskScheduler {
 }
 
 // ==========================================
+// 4.5 CURATED AI TOOLS DIRECTORY DATA (37 TOOLS)
+// ==========================================
+const AI_TOOLS_DATA = [
+  {
+    name: "Whispr Flow",
+    category: "Speech & Voice",
+    catKey: "voice",
+    icon: "🎙️",
+    desc: "Converts speech to text in real time across apps. Helps users dictate, format, and edit content hands-free.",
+    url: "https://outskill.link/wisprflow"
+  },
+  {
+    name: "Gemini",
+    category: "Assistants & LLMs",
+    catKey: "assistant",
+    icon: "✨",
+    desc: "Google’s AI assistant integrated into Search and Workspace. Provides conversational, multimodal, and contextual help.",
+    url: "https://outskill.link/gemini"
+  },
+  {
+    name: "Emily",
+    category: "Code & Dev",
+    catKey: "dev",
+    icon: "⚙️",
+    desc: "AI tool for engineers to scaffold, deploy, and manage ML or microservice projects. Simplifies orchestration and deployment.",
+    url: "https://outskill.link/emily"
+  },
+  {
+    name: "Fireflies",
+    category: "Speech & Voice",
+    catKey: "voice",
+    icon: "🪲",
+    desc: "Records, transcribes, and summarizes meetings automatically. Integrates with Zoom, Meet, and Teams to extract insights.",
+    url: "https://outskill.link/fireflies"
+  },
+  {
+    name: "ChatGPT",
+    category: "Assistants & LLMs",
+    catKey: "assistant",
+    icon: "💬",
+    desc: "OpenAI’s conversational assistant that can chat, code, write, summarize, and brainstorm across domains.",
+    url: "https://outskill.link/chatgpt"
+  },
+  {
+    name: "Claude",
+    category: "Assistants & LLMs",
+    catKey: "assistant",
+    icon: "🧠",
+    desc: "Anthropic’s AI model focused on safe, interpretable, and creative conversations with high contextual reasoning.",
+    url: "https://outskill.link/claude"
+  },
+  {
+    name: "Phot AI",
+    category: "Image & Design",
+    catKey: "design",
+    icon: "📸",
+    desc: "AI-powered tool for editing, enhancing, and generating photos or visual content. Great for quick creative visuals.",
+    url: "https://outskill.link/phot"
+  },
+  {
+    name: "Supergrow",
+    category: "Writing & Marketing",
+    catKey: "content",
+    icon: "📈",
+    desc: "AI marketing platform to help grow leads, optimize campaigns, and accelerate audience engagement.",
+    url: "https://outskill.link/supergrow"
+  },
+  {
+    name: "Perplexity",
+    category: "Assistants & LLMs",
+    catKey: "assistant",
+    icon: "🔍",
+    desc: "AI search engine combining live web data and LLM reasoning to give factual, cited answers.",
+    url: "https://outskill.link/perplexity"
+  },
+  {
+    name: "Writesonic",
+    category: "Writing & Marketing",
+    catKey: "content",
+    icon: "✍️",
+    desc: "AI content generation platform for blogs, ads, and marketing copy. Boosts productivity for writers and marketers.",
+    url: "https://outskill.link/writesonic"
+  },
+  {
+    name: "Numerous AI",
+    category: "Research & Ideas",
+    catKey: "research",
+    icon: "📊",
+    desc: "A multi-purpose AI platform offering various automation and generation tools under one suite.",
+    url: "https://outskill.link/numerous"
+  },
+  {
+    name: "Genspark",
+    category: "Research & Ideas",
+    catKey: "research",
+    icon: "⚡",
+    desc: "Generates creative ideas, articles, and media using generative AI — a “spark” for inspiration.",
+    url: "https://outskill.link/genspark"
+  },
+  {
+    name: "Suno",
+    category: "Speech & Voice",
+    catKey: "voice",
+    icon: "🎵",
+    desc: "AI music generator for composing songs, jingles, and soundscapes from text prompts.",
+    url: "https://outskill.link/suno"
+  },
+  {
+    name: "Notebook LM",
+    category: "Assistants & LLMs",
+    catKey: "assistant",
+    icon: "📓",
+    desc: "Google’s AI research assistant that summarizes, queries, and connects your notes and documents intelligently.",
+    url: "https://outskill.link/notebook-lm"
+  },
+  {
+    name: "Social Sonic",
+    category: "Writing & Marketing",
+    catKey: "content",
+    icon: "📱",
+    desc: "Helps create, schedule, and optimize social media content using AI-driven insights.",
+    url: "https://outskill.link/socialsonic"
+  },
+  {
+    name: "Bolt",
+    category: "Code & Dev",
+    catKey: "dev",
+    icon: "⚡",
+    desc: "Developer tool or automation assistant built for fast prototyping and deployment of apps or workflows.",
+    url: "https://outskill.link/bolt"
+  },
+  {
+    name: "Vapi",
+    category: "Speech & Voice",
+    catKey: "voice",
+    icon: "📞",
+    desc: "Voice or visual API platform enabling AI calling agents or multimodal experiences.",
+    url: "https://outskill.link/vapi"
+  },
+  {
+    name: "Hey Gen",
+    category: "Video & 3D",
+    catKey: "video",
+    icon: "👤",
+    desc: "AI video generator that turns text or scripts into realistic avatar videos with voice and lip sync.",
+    url: "https://outskill.link/heygen"
+  },
+  {
+    name: "Chronicle",
+    category: "Research & Ideas",
+    catKey: "research",
+    icon: "📖",
+    desc: "AI-powered tool for journaling, storytelling, or knowledge management to capture key moments.",
+    url: "https://outskill.link/chronicle"
+  },
+  {
+    name: "Runway ML",
+    category: "Video & 3D",
+    catKey: "video",
+    icon: "🎥",
+    desc: "Creative AI suite for video editing, image generation, and media production using machine learning.",
+    url: "https://outskill.link/runwayml"
+  },
+  {
+    name: "Midjourney",
+    category: "Image & Design",
+    catKey: "design",
+    icon: "🎨",
+    desc: "Text-to-image model producing high-quality, artistic visuals for creators and designers.",
+    url: "https://outskill.link/midjourney"
+  },
+  {
+    name: "Kling",
+    category: "Video & 3D",
+    catKey: "video",
+    icon: "🎬",
+    desc: "Emerging generative video platform focusing on ultra-realistic, cinematic outputs.",
+    url: "https://outskill.link/kling"
+  },
+  {
+    name: "Krea",
+    category: "Image & Design",
+    catKey: "design",
+    icon: "🖌️",
+    desc: "AI design and art creation tool enabling rapid visual exploration and creative experimentation.",
+    url: "https://outskill.link/krea"
+  },
+  {
+    name: "Leonardo",
+    category: "Image & Design",
+    catKey: "design",
+    icon: "🦁",
+    desc: "AI art platform for creating game assets, illustrations, and concept art using text prompts.",
+    url: "https://outskill.link/leonardo"
+  },
+  {
+    name: "Eleven Labs",
+    category: "Speech & Voice",
+    catKey: "voice",
+    icon: "🗣️",
+    desc: "Industry-leading AI voice synthesis platform for lifelike text-to-speech and dubbing.",
+    url: "https://outskill.link/elevenlabs"
+  },
+  {
+    name: "Higgsfield",
+    category: "Video & 3D",
+    catKey: "video",
+    icon: "🌌",
+    desc: "Advanced AI company developing realistic 3D / video generation technology for creative industries.",
+    url: "https://outskill.link/higgsfield"
+  },
+  {
+    name: "Humanic AI",
+    category: "Research & Ideas",
+    catKey: "research",
+    icon: "🤝",
+    desc: "Focuses on human-centric AI for personalization, empathy modeling, and user understanding.",
+    url: "https://outskill.link/humanic"
+  },
+  {
+    name: "Magnific AI",
+    category: "Image & Design",
+    catKey: "design",
+    icon: "🔬",
+    desc: "AI image upscaler and enhancer that adds detail, improves resolution, and refines visuals.",
+    url: "https://outskill.link/magnific"
+  },
+  {
+    name: "Lovable",
+    category: "Code & Dev",
+    catKey: "dev",
+    icon: "❤️",
+    desc: "AI design assistant helping teams quickly create delightful, user-friendly web apps.",
+    url: "https://outskill.link/lovable"
+  },
+  {
+    name: "Emergent",
+    category: "Research & Ideas",
+    catKey: "research",
+    icon: "💡",
+    desc: "AI discovery engine identifying emerging trends, ideas, and insights from large datasets.",
+    url: "https://outskill.link/emergent"
+  },
+  {
+    name: "Happenstance",
+    category: "Research & Ideas",
+    catKey: "research",
+    icon: "🎲",
+    desc: "AI idea generator fostering serendipitous discoveries, creative prompts, and connections.",
+    url: "https://outskill.link/happenstance"
+  },
+  {
+    name: "Granola",
+    category: "Speech & Voice",
+    catKey: "voice",
+    icon: "🥣",
+    desc: "AI note-taking assistant for meetings — transcribes, summarizes, and organizes discussions.",
+    url: "https://outskill.link/granola"
+  },
+  {
+    name: "Crystal",
+    category: "Research & Ideas",
+    catKey: "research",
+    icon: "💎",
+    desc: "AI tool that analyzes personality and communication style to improve interpersonal effectiveness.",
+    url: "https://outskill.link/crystal-knows"
+  },
+  {
+    name: "Lyzr AI",
+    category: "Code & Dev",
+    catKey: "dev",
+    icon: "🎯",
+    desc: "AI platform for analytics and automation — “laser-focused” insight generation and workflow optimization.",
+    url: "https://outskill.link/lyzr"
+  },
+  {
+    name: "Rocket",
+    category: "Code & Dev",
+    catKey: "dev",
+    icon: "🚀",
+    desc: "Automation tool that accelerates tasks, launches workflows, or optimizes processes using AI.",
+    url: "https://outskill.link/rocket"
+  },
+  {
+    name: "Replit",
+    category: "Code & Dev",
+    catKey: "dev",
+    icon: "💻",
+    desc: "Collaborative online IDE with AI code assistance for real-time coding and learning.",
+    url: "https://outskill.link/replit"
+  },
+  {
+    name: "Perplexity (Comet)",
+    category: "Assistants & LLMs",
+    catKey: "assistant",
+    icon: "☄️",
+    desc: "AI answer engine combining search, web retrieval, and LLM reasoning with citations.",
+    url: "https://outskill.link/perplexity-comet"
+  }
+];
+
+// ==========================================
 // 5. MAIN APP CONTROLLER & UI
 // ==========================================
 class PulseRemindApp {
@@ -1100,6 +1402,10 @@ class PulseRemindApp {
     this.autoLockTimer = null;
     this.titleBlinkInterval = null;
     this.originalDocTitle = document.title;
+    this.currentMainTab = 'reminders';
+    this.aiToolsActiveCategory = 'all';
+    this.aiToolsSearchQuery = '';
+    this.aiToolsViewMode = 'grid';
   }
 
   async init() {
@@ -1141,6 +1447,9 @@ class PulseRemindApp {
 
     // 8. Ask notification permission politely if not asked
     this.setupNotifications();
+
+    // 9. Initial render of AI Tools directory
+    this.renderAiTools();
   }
 
   setupAudioUnlockTrigger() {
@@ -2332,6 +2641,257 @@ class PulseRemindApp {
     if (newProfForm) {
       newProfForm.addEventListener('submit', (e) => this.submitCreateProfile(e));
     }
+  }
+
+  // ==========================================
+  // TOAST NOTIFICATIONS
+  // ==========================================
+  showToast(msg) {
+    let container = document.getElementById('globalToastContainer');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'globalToastContainer';
+      container.className = 'fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none';
+      document.body.appendChild(container);
+    }
+    const toast = document.createElement('div');
+    toast.className = 'pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-slate-900/95 text-white text-xs font-semibold border border-slate-700 shadow-2xl backdrop-blur-xl transition-all transform translate-y-2 opacity-0 duration-200';
+    toast.innerHTML = `<span>✨</span><span>${msg}</span>`;
+    container.appendChild(toast);
+    requestAnimationFrame(() => {
+      toast.classList.remove('translate-y-2', 'opacity-0');
+    });
+    setTimeout(() => {
+      toast.classList.add('translate-y-2', 'opacity-0');
+      setTimeout(() => toast.remove(), 250);
+    }, 3200);
+  }
+
+  // ==========================================
+  // AI TOOLS HUB CONTROLLER & METHODS
+  // ==========================================
+  switchMainTab(tabName) {
+    this.currentMainTab = tabName;
+    const remindersView = document.getElementById('remindersView');
+    const aiToolsView = document.getElementById('aiToolsView');
+    const navReminders = document.getElementById('navTabReminders');
+    const navAi = document.getElementById('navTabAiTools');
+
+    if (tabName === 'aiTools') {
+      if (remindersView) remindersView.classList.add('hidden');
+      if (aiToolsView) aiToolsView.classList.remove('hidden');
+
+      if (navReminders) {
+        navReminders.className = 'flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800/80';
+      }
+      if (navAi) {
+        navAi.className = 'flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer bg-indigo-600 text-white shadow-sm';
+      }
+      this.renderAiTools();
+    } else {
+      if (remindersView) remindersView.classList.remove('hidden');
+      if (aiToolsView) aiToolsView.classList.add('hidden');
+
+      if (navReminders) {
+        navReminders.className = 'flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer bg-sky-600 text-white shadow-sm';
+      }
+      if (navAi) {
+        navAi.className = 'flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800/80';
+      }
+    }
+  }
+
+  setAiToolsCategory(catKey) {
+    this.aiToolsActiveCategory = catKey;
+    document.querySelectorAll('.ai-cat-pill').forEach(btn => {
+      if (btn.dataset.cat === catKey) {
+        btn.className = 'ai-cat-pill px-3 py-1 rounded-xl text-xs font-semibold bg-indigo-600 text-white transition cursor-pointer';
+      } else {
+        btn.className = 'ai-cat-pill px-3 py-1 rounded-xl text-xs font-semibold bg-slate-800/80 text-slate-300 hover:text-white transition cursor-pointer';
+      }
+    });
+    this.renderAiTools();
+  }
+
+  handleAiToolsSearch(query) {
+    this.aiToolsSearchQuery = (query || '').toLowerCase().trim();
+    this.renderAiTools();
+  }
+
+  setAiToolsViewMode(mode) {
+    this.aiToolsViewMode = mode;
+    const gridEl = document.getElementById('aiToolsGridContainer');
+    const tableEl = document.getElementById('aiToolsTableContainer');
+    const gridBtn = document.getElementById('aiViewGridBtn');
+    const tableBtn = document.getElementById('aiViewTableBtn');
+
+    if (mode === 'table') {
+      if (gridEl) gridEl.classList.add('hidden');
+      if (tableEl) tableEl.classList.remove('hidden');
+      if (gridBtn) gridBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition cursor-pointer';
+      if (tableBtn) tableBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white transition cursor-pointer';
+    } else {
+      if (gridEl) gridEl.classList.remove('hidden');
+      if (tableEl) tableEl.classList.add('hidden');
+      if (gridBtn) gridBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white transition cursor-pointer';
+      if (tableBtn) tableBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition cursor-pointer';
+    }
+  }
+
+  renderAiTools() {
+    const gridContainer = document.getElementById('aiToolsGridContainer');
+    const tableBody = document.getElementById('aiToolsTableBody');
+    const countEl = document.getElementById('aiToolsResultCount');
+    if (!gridContainer || !tableBody) return;
+
+    const filtered = AI_TOOLS_DATA.filter(tool => {
+      const matchCat = (this.aiToolsActiveCategory === 'all' || tool.catKey === this.aiToolsActiveCategory);
+      const matchSearch = (!this.aiToolsSearchQuery ||
+        tool.name.toLowerCase().includes(this.aiToolsSearchQuery) ||
+        tool.desc.toLowerCase().includes(this.aiToolsSearchQuery) ||
+        tool.category.toLowerCase().includes(this.aiToolsSearchQuery));
+      return matchCat && matchSearch;
+    });
+
+    if (countEl) countEl.textContent = filtered.length;
+
+    if (filtered.length === 0) {
+      gridContainer.innerHTML = `
+        <div class="col-span-full py-16 text-center text-slate-400 space-y-3">
+          <div class="text-4xl">🔍</div>
+          <div class="text-base font-semibold text-white">No AI tools found</div>
+          <div class="text-xs text-slate-500">Try clearing your search query or picking another category pill.</div>
+          <button onclick="window.app.setAiToolsCategory('all'); document.getElementById('aiToolsSearchInput').value=''; window.app.handleAiToolsSearch('')" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-200 text-xs font-semibold hover:bg-slate-700 transition cursor-pointer">
+            Reset Filters
+          </button>
+        </div>
+      `;
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="5" class="py-12 text-center text-slate-400">No AI tools matching your filter.</td>
+        </tr>
+      `;
+      return;
+    }
+
+    // 1. Render Cards Grid
+    gridContainer.innerHTML = filtered.map((tool, idx) => {
+      return `
+        <div class="glass-panel p-5 rounded-3xl border border-slate-800/90 hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/10 transition flex flex-col justify-between group">
+          <div class="space-y-3">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition">
+                  ${tool.icon}
+                </div>
+                <div>
+                  <h3 class="text-base font-bold text-white group-hover:text-indigo-300 transition">
+                    ${tool.name}
+                  </h3>
+                  <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+                    ${tool.category}
+                  </span>
+                </div>
+              </div>
+              <button onclick="window.app.copySingleAiLink('${tool.url}', '${tool.name}')" title="Copy Link" class="p-2 rounded-xl bg-slate-800/60 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer text-xs">
+                📋
+              </button>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed min-h-[48px]">
+              ${tool.desc}
+            </p>
+          </div>
+          <div class="pt-4 mt-2 border-t border-slate-800/80 flex items-center justify-between">
+            <span class="text-[11px] font-mono text-slate-500 truncate max-w-[150px]" title="${tool.url}">
+              ${tool.url.replace('https://', '')}
+            </span>
+            <a href="${tool.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/30 transition cursor-pointer">
+              <span>Open Tool</span>
+              <span>↗</span>
+            </a>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // 2. Render Excel Table
+    tableBody.innerHTML = filtered.map((tool, idx) => {
+      const isEven = (idx % 2 === 0);
+      return `
+        <tr class="${isEven ? 'bg-slate-900/40' : 'bg-slate-900/80'} hover:bg-indigo-950/30 transition">
+          <td class="py-3 px-4 text-center font-mono text-slate-500 font-bold">${idx + 1}</td>
+          <td class="py-3 px-4">
+            <div class="flex items-center gap-2 font-bold text-white">
+              <span>${tool.icon}</span>
+              <span>${tool.name}</span>
+            </div>
+          </td>
+          <td class="py-3 px-4">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+              ${tool.category}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-slate-300 leading-relaxed">
+            ${tool.desc}
+          </td>
+          <td class="py-3 px-4 text-right whitespace-nowrap">
+            <div class="flex items-center justify-end gap-2">
+              <button onclick="window.app.copySingleAiLink('${tool.url}', '${tool.name}')" title="Copy Link" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer text-xs">
+                📋
+              </button>
+              <a href="${tool.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition cursor-pointer">
+                <span>Visit ↗</span>
+              </a>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  copySingleAiLink(url, name) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => {
+        this.showToast(`Copied link for ${name}!`);
+      }).catch(() => {
+        prompt(`Copy link for ${name}:`, url);
+      });
+    } else {
+      prompt(`Copy link for ${name}:`, url);
+    }
+  }
+
+  copyAllAiToolsLinks() {
+    const text = AI_TOOLS_DATA.map(t => `${t.name}\t${t.category}\t${t.desc}\t${t.url}`).join('\n');
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => {
+        this.showToast(`Copied all 37 AI tools and links to clipboard!`);
+      }).catch(() => {
+        this.downloadAiToolsCsv();
+      });
+    } else {
+      this.downloadAiToolsCsv();
+    }
+  }
+
+  downloadAiToolsCsv() {
+    const headers = "Name,Category,Description,Link\n";
+    const rows = AI_TOOLS_DATA.map(t => {
+      const name = `"${t.name.replace(/"/g, '""')}"`;
+      const cat = `"${t.category.replace(/"/g, '""')}"`;
+      const desc = `"${t.desc.replace(/"/g, '""')}"`;
+      const url = `"${t.url.replace(/"/g, '""')}"`;
+      return `${name},${cat},${desc},${url}`;
+    }).join('\n');
+    const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "AI_Tools_Directory.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    this.showToast("Downloaded AI_Tools_Directory.csv!");
   }
 }
 

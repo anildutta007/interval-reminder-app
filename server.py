@@ -485,6 +485,13 @@ async def serve_app_js():
         return FileResponse(f, media_type="application/javascript")
     return JSONResponse({"status": "Not found"}, status_code=404)
 
+@app.get("/ai_tools.csv")
+async def serve_ai_tools_csv():
+    f = os.path.join(BASE_DIR, "ai_tools.csv")
+    if os.path.exists(f):
+        return FileResponse(f, media_type="text/csv", filename="ai_tools.csv")
+    return JSONResponse({"status": "Not found"}, status_code=404)
+
 # Mount static folder
 app.mount("/static", StaticFiles(directory=BASE_DIR), name="static")
 
