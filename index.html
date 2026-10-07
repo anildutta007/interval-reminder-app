@@ -224,11 +224,18 @@
         </div>
         
         <!-- Audio State Button -->
-        <button id="audioStatusBtn" class="flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-700/50 hover:bg-emerald-800/50 transition cursor-pointer">
+        <button id="audioStatusBtn" class="flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-700/50 hover:bg-emerald-800/50 transition cursor-pointer" title="Audio state indicator. Click to enable or toggle sound.">
           <svg id="audioStatusIcon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
           </svg>
           <span id="audioStatusLabel">Sound Ready</span>
+        </button>
+
+        <!-- Instant Alarm & Voice Test Button -->
+        <button id="testAlarmHeaderBtn" onclick="window.app.testFullAlarmSequence()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white shadow-md shadow-sky-600/30 transition cursor-pointer" title="Immediately test crystal chime sound and Hindi & English spoken announcements">
+          <span>🔔</span>
+          <span class="hidden sm:inline">Test Alarm & Voice</span>
+          <span class="sm:hidden">Test</span>
         </button>
 
         <!-- Sound Volume Slider (Compact) -->
@@ -330,6 +337,9 @@
       </div>
       
       <div class="flex flex-wrap items-center gap-2.5">
+        <button onclick="window.app.openAddTaskModal('test1m')" class="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-xs font-bold text-amber-300 transition cursor-pointer flex items-center gap-1.5 shadow-sm" title="Quickly create a 1-minute interval task to test sound and voice countdown in real time">
+          <span>⚡</span> 1-Min Quick Test (1m)
+        </button>
         <button onclick="window.app.openAddTaskModal('water')" class="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-sky-950 hover:border-sky-500 border border-slate-700 text-xs text-slate-200 transition cursor-pointer flex items-center gap-1.5">
           <span>💧</span> Drink Water (45m)
         </button>
@@ -470,6 +480,7 @@
             
             <!-- Quick preset buttons -->
             <div class="flex items-center gap-1.5 flex-wrap">
+              <button type="button" onclick="document.getElementById('taskFormInterval').value=1; document.getElementById('intervalPreviewNumber').textContent='1'" class="px-2.5 py-1 rounded-lg bg-amber-900/40 hover:bg-amber-800/60 border border-amber-700/60 text-amber-300 text-xs font-bold" title="Quick 1-minute test interval">⚡ 1m</button>
               <button type="button" onclick="document.getElementById('taskFormInterval').value=15; document.getElementById('intervalPreviewNumber').textContent='15'" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs">15m</button>
               <button type="button" onclick="document.getElementById('taskFormInterval').value=30; document.getElementById('intervalPreviewNumber').textContent='30'" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs">30m</button>
               <button type="button" onclick="document.getElementById('taskFormInterval').value=45; document.getElementById('intervalPreviewNumber').textContent='45'" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs">45m</button>

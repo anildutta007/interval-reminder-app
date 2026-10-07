@@ -50,6 +50,9 @@ class VoiceEngine {
       return;
     }
     try {
+      if (this.synth.paused) {
+        this.synth.resume();
+      }
       this.synth.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 0.92; // Clear, measured, pleasant cadence
@@ -138,7 +141,7 @@ class SoundEngine {
     this.audioInitListeners = [];
   }
 
-  initAudio() {
+  async initAudio() {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (AudioCtx) {
@@ -146,12 +149,17 @@ class SoundEngine {
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      try {
+        await this.ctx.resume();
+      } catch (e) {
+        console.warn('[SoundEngine] AudioContext resume failed:', e);
+      }
     }
     if (this.ctx && this.ctx.state === 'running') {
       this.isUnlocked = true;
       this.notifyInit();
     }
+    return this.isUnlocked;
   }
 
   notifyInit() {
@@ -177,6 +185,9 @@ class SoundEngine {
   playTone(toneName = 'chime', customVol = null) {
     this.initAudio();
     if (this.isMuted || !this.ctx) return;
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
 
     const baseVol = (customVol !== null ? customVol : this.volume);
     if (baseVol <= 0) return;
@@ -410,6 +421,10 @@ class SoundEngine {
   startAlarm(task) {
     this.stopAlarm();
     this.activeTask = task;
+    this.initAudio();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
     const alertType = task.alertType || 'both'; // 'both', 'voice', or 'sound'
     const tone = task.soundTone || 'chime';
 
@@ -1245,6 +1260,7 @@ class PulseRemindApp {
   }
 
   handlePinInput(char) {
+    this.sound.initAudio();
     if (this.currentPinInput.length >= 6) return;
     this.currentPinInput += char;
     this.updatePinDots();
@@ -1750,6 +1766,29 @@ class PulseRemindApp {
     }
   }
 
+  async testFullAlarmSequence() {
+    if (this.sound.isMuted) {
+      this.sound.isMuted = false;
+    }
+    await this.sound.initAudio();
+    this.updateAudioIndicator();
+
+    // 1. Play Crystal Bell Chime
+    this.sound.playTone('chime', 0.9);
+
+    // 2. Play Bilingual Speech (English followed by Hindi)
+    setTimeout(() => {
+      this.sound.voice.speakSequence([
+        { text: 'PulseRemind sound and voice are working perfectly!', lang: 'en' },
+        { text: 'आवाज़ और अलार्म बिल्कुल सही काम कर रहे हैं!', lang: 'hi' }
+      ], () => {
+        this.showToast('Test complete: Sound and Voice are active!');
+      });
+    }, 850);
+
+    this.showToast('Testing Alarm: Crystal Chime & Bilingual Voice...');
+  }
+
   async quickLogCompletion(taskId) {
     this.sound.playTone('completion', 0.85);
     this.fireConfetti();
@@ -1883,6 +1922,22 @@ class PulseRemindApp {
       speechEn = 'Posture check! Sit straight and take three slow, deep breaths.';
       speechHi = 'अपनी मुद्रा ठीक करें! सीधे बैठिए और तीन गहरी सांसें लीजिए।';
       color = 'rose';
+    } else if (templateName === 'test1m') {
+      title = '1-Minute Quick Test Alarm';
+      category = 'Quick Test';
+      icon = '⚡';
+      description = 'Quick 1-minute test alarm to verify sounds and Hindi & English spoken announcements.';
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      startTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      endTime = '23:59';
+      interval = 1;
+      soundTone = 'chime';
+      alertType = 'both';
+      speechLang = 'both';
+      speechEn = 'Quick test successful! PulseRemind alarm and English voice are working properly.';
+      speechHi = 'क्विक टेस्ट सफल हुआ! अलार्म और हिंदी आवाज़ बिल्कुल सही काम कर रहे हैं।';
+      color = 'sky';
     }
 
     document.getElementById('taskFormTitle').value = title;
@@ -2210,9 +2265,24 @@ class PulseRemindApp {
 
     const audioBtn = document.getElementById('audioStatusBtn');
     if (audioBtn) {
-      audioBtn.addEventListener('click', () => {
-        this.sound.initAudio();
-        const muted = this.sound.toggleMute();
+      audioBtn.addEventListener('click', async () => {
+        await this.sound.initAudio();
+        if (this.sound.isMuted) {
+          this.sound.isMuted = false;
+          this.sound.playTone('chime', 0.6);
+          this.showToast('Sound unmuted and ready!');
+        } else if (!this.sound.isUnlocked) {
+          this.sound.playTone('chime', 0.6);
+          this.showToast('Audio unlocked and ready!');
+        } else {
+          const muted = this.sound.toggleMute();
+          if (!muted) {
+            this.sound.playTone('chime', 0.6);
+            this.showToast('Sound unmuted');
+          } else {
+            this.showToast('Sound muted');
+          }
+        }
         this.updateAudioIndicator();
       });
     }
