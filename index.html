@@ -249,8 +249,14 @@
           <span id="audioStatusLabel">Sound Ready</span>
         </button>
 
+        <!-- Desktop Popups Permission Button -->
+        <button id="notifStatusBtn" onclick="window.app.requestNotificationPermissionFromUser()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-slate-300 border border-slate-700 hover:bg-slate-800 transition cursor-pointer" title="Click to enable Windows desktop popups so alarms appear when working in other tabs">
+          <span id="notifStatusIcon">🔔</span>
+          <span id="notifStatusLabel">Desktop Popups</span>
+        </button>
+
         <!-- Instant Alarm & Voice Test Button -->
-        <button id="testAlarmHeaderBtn" onclick="window.app.testFullAlarmSequence()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white shadow-md shadow-sky-600/30 transition cursor-pointer" title="Immediately test crystal chime sound and Hindi & English spoken announcements">
+        <button id="testAlarmHeaderBtn" onclick="window.app.testFullAlarmSequence()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white shadow-md shadow-sky-600/30 transition cursor-pointer" title="Immediately test crystal chime sound, Hindi & English spoken announcements, and desktop popup">
           <span>🔔</span>
           <span class="hidden sm:inline">Test Alarm & Voice</span>
           <span class="sm:hidden">Test</span>

@@ -1750,11 +1750,63 @@ class PulseRemindApp {
     }
   }
 
-  async setupNotifications() {
-    if ('Notification' in window && Notification.permission === 'default') {
-      try {
-        await Notification.requestPermission();
-      } catch (e) {}
+  setupNotifications() {
+    this.updateNotificationIndicator();
+  }
+
+  async requestNotificationPermissionFromUser() {
+    if (!('Notification' in window)) {
+      this.showToast('Desktop notifications are not supported in this browser.');
+      return;
+    }
+    try {
+      const perm = await Notification.requestPermission();
+      this.updateNotificationIndicator();
+      if (perm === 'granted') {
+        this.showToast('Desktop notifications enabled! Popups will appear over other tabs.');
+        const testNotif = new Notification('⏰ PulseRemind: Desktop Popups Active', {
+          body: 'You will now see reminder popups even when working on other tabs or apps!',
+          icon: '/static/favicon.ico',
+          tag: `pulse-test-${Date.now()}`
+        });
+        testNotif.onclick = () => {
+          window.focus();
+          testNotif.close();
+        };
+      } else if (perm === 'denied') {
+        alert('Notifications are blocked in Chrome. Please click the tune/padlock icon next to the URL in your address bar and change Notifications to "Allow".');
+      }
+    } catch (e) {
+      console.warn('Error requesting notification permission:', e);
+    }
+  }
+
+  updateNotificationIndicator() {
+    const btn = document.getElementById('notifStatusBtn');
+    const label = document.getElementById('notifStatusLabel');
+    const icon = document.getElementById('notifStatusIcon');
+    if (!btn || !label || !icon) return;
+
+    if (!('Notification' in window)) {
+      btn.classList.add('hidden');
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      btn.className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-900/40 text-emerald-300 border border-emerald-700/50 hover:bg-emerald-800/50 transition cursor-pointer';
+      label.textContent = 'Popups Ready';
+      icon.textContent = '🔔';
+      btn.title = 'Desktop popups are active! Alerts will appear over other tabs.';
+    } else if (Notification.permission === 'denied') {
+      btn.className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-900/40 text-rose-300 border border-rose-700/50 hover:bg-rose-800/50 transition cursor-pointer';
+      label.textContent = 'Popups Blocked';
+      icon.textContent = '🔕';
+      btn.title = 'Notifications blocked in Chrome. Click site settings next to URL to Allow.';
+    } else {
+      btn.className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-900/40 text-amber-300 border border-amber-700/50 hover:bg-amber-800/50 transition cursor-pointer animate-pulse';
+      label.textContent = 'Enable Popups';
+      icon.textContent = '🔔';
+      btn.title = 'Click to enable Windows desktop popups so alarms appear when working in other tabs.';
     }
   }
 
@@ -1919,7 +1971,7 @@ class PulseRemindApp {
         const notif = new Notification(`⏰ PulseRemind: ${task.title}`, {
           body: bodyText,
           icon: '/static/favicon.ico',
-          tag: `pulse-alarm-${task.id}`,
+          tag: `pulse-alarm-${task.id}-${Date.now()}`,
           requireInteraction: true
         });
         notif.onclick = () => {
@@ -2355,6 +2407,29 @@ class PulseRemindApp {
     await this.sound.initAudio();
     this.updateAudioIndicator();
 
+    // Check notification permission if not yet requested
+    if ('Notification' in window && Notification.permission === 'default') {
+      try {
+        await Notification.requestPermission();
+        this.updateNotificationIndicator();
+      } catch (e) {}
+    }
+
+    // Fire test desktop notification so user sees the Windows popup right now!
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        const notif = new Notification('⏰ PulseRemind: Test Alarm & Voice', {
+          body: 'Sound, bilingual voice, and desktop popups are working perfectly!',
+          icon: '/static/favicon.ico',
+          tag: `test-alarm-popup-${Date.now()}`
+        });
+        notif.onclick = () => {
+          window.focus();
+          notif.close();
+        };
+      } catch (e) {}
+    }
+
     // 1. Play Crystal Bell Chime
     this.sound.playTone('chime', 0.9);
 
@@ -2364,11 +2439,11 @@ class PulseRemindApp {
         { text: 'PulseRemind sound and voice are working perfectly!', lang: 'en' },
         { text: 'आवाज़ और अलार्म बिल्कुल सही काम कर रहे हैं!', lang: 'hi' }
       ], () => {
-        this.showToast('Test complete: Sound and Voice are active!');
+        this.showToast('Test complete: Sound, voice, and popups are active!');
       });
     }, 850);
 
-    this.showToast('Testing Alarm: Crystal Chime & Bilingual Voice...');
+    this.showToast('Testing Alarm: Chime, Voice & Desktop Popup...');
   }
 
   async quickLogCompletion(taskId) {
