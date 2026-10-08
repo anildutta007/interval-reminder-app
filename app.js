@@ -998,17 +998,33 @@ class TaskScheduler {
     }
 
     // 3. Snooze Check
-    if (task.snoozedUntil && task.snoozedUntil > nowTimestamp) {
-      const remainingSecs = Math.max(0, Math.round((task.snoozedUntil - nowTimestamp) / 1000));
-      return {
-        task,
-        status: 'SNOOZED',
-        badgeText: `Snoozed (${this.formatDuration(remainingSecs)})`,
-        badgeColor: 'amber',
-        secondsRemaining: remainingSecs,
-        percentElapsed: Math.min(100, Math.round(((300 - remainingSecs) / 300) * 100)),
-        shouldTrigger: remainingSecs <= 0
-      };
+    if (task.snoozedUntil) {
+      if (task.snoozedUntil > nowTimestamp) {
+        const remainingSecs = Math.max(0, Math.round((task.snoozedUntil - nowTimestamp) / 1000));
+        return {
+          task,
+          status: 'SNOOZED',
+          badgeText: `Snoozed (${this.formatDuration(remainingSecs)})`,
+          badgeColor: 'amber',
+          secondsRemaining: remainingSecs,
+          percentElapsed: Math.min(100, Math.round(((300 - remainingSecs) / 300) * 100)),
+          shouldTrigger: false
+        };
+      } else {
+        // Snooze duration completed!
+        const snoozeTarget = task.snoozedUntil;
+        task.snoozedUntil = null;
+        task._lastFiredTargetMs = snoozeTarget;
+        return {
+          task,
+          status: 'ACTIVE',
+          badgeText: `Alarm Triggered!`,
+          badgeColor: 'red',
+          secondsRemaining: 0,
+          percentElapsed: 100,
+          shouldTrigger: true
+        };
+      }
     }
 
     // 4. Active Window: Calculate next trigger based on lastCompletedAt or interval anchors
@@ -1030,17 +1046,39 @@ class TaskScheduler {
     const elapsedSinceAnchor = nowTimestamp - anchorMs;
 
     let nextTargetMs;
+    let shouldTrigger = false;
+
     if (elapsedSinceAnchor < 0) {
-      nextTargetMs = anchorMs;
+      const remainingMs = Math.max(0, anchorMs - nowTimestamp);
+      const remainingSecs = Math.round(remainingMs / 1000);
+      return {
+        task,
+        status: 'UPCOMING',
+        badgeText: `Starts in ${this.formatDuration(remainingSecs)}`,
+        badgeColor: 'blue',
+        secondsRemaining: remainingSecs,
+        percentElapsed: 0,
+        shouldTrigger: false
+      };
     } else {
       const periods = Math.floor(elapsedSinceAnchor / intervalMs);
+      const targetReachedMs = anchorMs + periods * intervalMs;
       nextTargetMs = anchorMs + (periods + 1) * intervalMs;
+
+      // On initial task evaluation, align _lastFiredTargetMs to current targetReachedMs so it starts countdown fresh
+      if (task._lastFiredTargetMs === undefined) {
+        task._lastFiredTargetMs = targetReachedMs;
+      } else if (periods >= 1 && targetReachedMs > task._lastFiredTargetMs) {
+        // An interval target has elapsed and not yet fired!
+        shouldTrigger = true;
+        task._lastFiredTargetMs = targetReachedMs;
+      }
     }
 
     // Check if nextTargetMs exceeds end time
     const windowEndDate = new Date(now);
     windowEndDate.setHours(endH, endM, 0, 0);
-    if (nextTargetMs > windowEndDate.getTime()) {
+    if (nextTargetMs > windowEndDate.getTime() && !shouldTrigger) {
       return {
         task,
         status: 'ENDED',
@@ -1052,12 +1090,16 @@ class TaskScheduler {
       };
     }
 
-    const remainingMs = nextTargetMs - nowTimestamp;
-    const remainingSecs = Math.max(0, Math.round(remainingMs / 1000));
+    const remainingMs = Math.max(0, nextTargetMs - nowTimestamp);
+    const remainingSecs = Math.round(remainingMs / 1000);
     const elapsedSecs = (intervalMins * 60) - remainingSecs;
     const percentElapsed = Math.min(100, Math.max(0, Math.round((elapsedSecs / (intervalMins * 60)) * 100)));
 
-    const shouldTrigger = remainingSecs <= 1;
+    // Also trigger if countdown reaches 0 and hasn't fired for nextTargetMs
+    if (remainingSecs <= 0 && (!task._lastFiredTargetMs || task._lastFiredTargetMs < nextTargetMs)) {
+      shouldTrigger = true;
+      task._lastFiredTargetMs = nextTargetMs;
+    }
 
     return {
       task,
@@ -1385,6 +1427,220 @@ const AI_TOOLS_DATA = [
 ];
 
 // ==========================================
+// 4.6 CURATED INDIAN STOCK MARKET INDICES (16 INDICES)
+// ==========================================
+const INDIAN_MARKET_DATA = [
+  {
+    name: "NIFTY 50",
+    exchange: "NSE",
+    tier: "Headline Benchmark",
+    catKey: "headline",
+    icon: "🏆",
+    constituents: "50 Blue-Chip Leaders",
+    coverage: "~60% of NSE free-float market capitalisation",
+    keyHoldings: "Reliance Industries, HDFC Bank, ICICI Bank, Infosys, TCS, ITC, Bharti Airtel, L&T",
+    desc: "The most heavily traded and tracked benchmark index in India. It tracks the 50 largest, most liquid blue-chip companies listed on the NSE across key sectors.",
+    quoteUrl: "https://www.google.com/finance/quote/NIFTY_50:INDEXNSE",
+    officialUrl: "https://www.nseindia.com/products-services/indices-nifty50-index"
+  },
+  {
+    name: "BSE SENSEX",
+    exchange: "BSE",
+    tier: "Headline Benchmark",
+    catKey: "headline",
+    icon: "🏛️",
+    constituents: "30 Large Established Companies",
+    coverage: "India's oldest stock market index (launched 1986)",
+    keyHoldings: "Reliance, TCS, HDFC Bank, Infosys, ICICI Bank, Hindustan Unilever, SBI, L&T",
+    desc: "India's oldest stock market index (launched in 1986). It comprises 30 large, established, and financially sound companies listed on the BSE, weighted by free-float market capitalisation.",
+    quoteUrl: "https://www.google.com/finance/quote/SENSEX:INDEXBOM",
+    officialUrl: "https://www.bseindia.com/markets/equity/EQReports/SensexHistory.aspx"
+  },
+  {
+    name: "NIFTY Next 50",
+    exchange: "NSE",
+    tier: "Large-Cap",
+    catKey: "largecap",
+    icon: "🏢",
+    constituents: "50 Companies (Rank 51–100)",
+    coverage: "Pipeline for future NIFTY 50 constituents (~10% of NSE M-Cap)",
+    keyHoldings: "Trent, Bharat Electronics (BEL), HAL, Cholamandalam, TVS Motor, Vedanta, Zomato",
+    desc: "Tracks companies ranked 51–100 by market cap; often viewed as the pipeline for future NIFTY 50 constituents with strong secular growth potential.",
+    quoteUrl: "https://www.google.com/finance/quote/NIFTY_NEXT_50:INDEXNSE",
+    officialUrl: "https://www.nseindia.com/products-services/indices-niftynext50-index"
+  },
+  {
+    name: "NIFTY 100 / BSE 100",
+    exchange: "NSE & BSE",
+    tier: "Large-Cap",
+    catKey: "largecap",
+    icon: "📈",
+    constituents: "Top 100 Large-Cap Companies",
+    coverage: "Combined NIFTY 50 + NIFTY Next 50 (~70% of total market cap)",
+    keyHoldings: "Consolidated top 100 large-cap leaders across private and public sectors",
+    desc: "Combines NIFTY 50 and NIFTY Next 50, capturing the top 100 large-cap names and roughly 70% of total Indian listed equity capitalisation.",
+    quoteUrl: "https://www.google.com/finance/quote/NIFTY_100:INDEXNSE",
+    officialUrl: "https://www.nseindia.com/products-services/indices-nifty100-index"
+  },
+  {
+    name: "NIFTY Midcap 150 / NIFTY Midcap 100",
+    exchange: "NSE",
+    tier: "Mid-Cap",
+    catKey: "midsmall",
+    icon: "🚀",
+    constituents: "150 Mid-Cap Companies (Rank 101–250)",
+    coverage: "High-growth medium enterprises (~15% of market cap)",
+    keyHoldings: "Persistent Systems, Cummins India, Suzlon Energy, Dixon Technologies, Indian Hotels",
+    desc: "Measures companies ranked 101–250 by full market capitalisation on the NSE. Key benchmark for active mid-cap mutual funds.",
+    quoteUrl: "https://www.google.com/finance/quote/NIFTY_MIDCAP_100:INDEXNSE",
+    officialUrl: "https://www.nseindia.com/products-services/indices-niftymidcap150-index"
+  },
+  {
+    name: "NIFTY Smallcap 250 / BSE SmallCap",
+    exchange: "NSE & BSE",
+    tier: "Small-Cap",
+    catKey: "midsmall",
+    icon: "🌱",
+    constituents: "250 Emerging Companies (Rank 251–500)",
+    coverage: "Emerging dynamic small-cap companies (~10% of market cap)",
+    keyHoldings: "Niche manufacturers, specialty chemicals, emerging fintech, infrastructure suppliers",
+    desc: "Tracks smaller emerging companies (ranked 251–500 on the NSE). Features high growth velocity and dynamic industrial momentum.",
+    quoteUrl: "https://www.google.com/finance/quote/NIFTY_SMLCAP_100:INDEXNSE",
+    officialUrl: "https://www.nseindia.com/products-services/indices-niftysmallcap250-index"
+  },
+  {
+    name: "NIFTY 500 / BSE 500",
+    exchange: "NSE & BSE",
+    tier: "Comprehensive Broad Market",
+    catKey: "comprehensive",
+    icon: "🌐",
+    constituents: "Top 500 Listed Companies",
+    coverage: "90–95% of total Indian equity market capitalisation",
+    keyHoldings: "Complete equity universe encompassing large, mid, and small-cap leaders",
+    desc: "Covers the top 500 listed companies, capturing around 90–95% of total market capitalisation and giving an all-encompassing view of India's equity market.",
+    quoteUrl: "https://www.google.com/finance/quote/NIFTY_500:INDEXNSE",
+    officialUrl: "https://www.nseindia.com/products-services/indices-nifty500-index"
+  },
+  {
+    name: "NIFTY Bank (Bank Nifty)",
+    exchange: "NSE",
+    tier: "Sectoral - Banking",
+    catKey: "sectoral",
+    icon: "🏦",
+    constituents: "12 Liquid Banking Leaders",
+    coverage: "Most heavily traded derivatives index after NIFTY 50",
+    keyHoldings: "HDFC Bank, ICICI Bank, State Bank of India (SBI), Axis Bank, Kotak Mahindra Bank",
+    desc: "The most actively traded derivative index after NIFTY 50. Tracks the 12 most liquid banking stocks (both private and public sector lenders).",
+    quoteUrl: "https://www.google.com/finance/quote/NIFTY_BANK:INDEXNSE",
+    officialUrl: "https://www.nseindia.com/products-services/indices-niftybank-index"
+  },
+  {
+    name: "NIFTY IT",
+    exchange: "NSE",
+    tier: "Sectoral - Technology",
+    catKey: "sectoral",
+    icon: "💻",
+    constituents: "Top 10 Indian IT Exporters",
+    coverage: "Global software services, AI & digital transformation exporters",
+    keyHoldings: "Tata Consultancy Services (TCS), Infosys, HCLTech, Wipro, Tech Mahindra, LTIMindtree",
+    desc: "Tracks major global software services exporters such as TCS, Infosys, and HCLTech. Key bellwether for technology exports.",
+    quoteUrl: "https://www.google.com/finance/quote/NIFTY_IT:INDEXNSE",
+    officialUrl: "https://www.nseindia.com/products-services/indices-niftyit-index"
+  },
+  {
+    name: "NIFTY Auto",
+    exchange: "NSE",
+    tier: "Sectoral - Automobiles",
+    catKey: "sectoral",
+    icon: "🚗",
+    constituents: "15 Vehicle & Auto-Ancillary Makers",
+    coverage: "2-wheelers, commercial vehicles, passenger cars & EV manufacturers",
+    keyHoldings: "Tata Motors, Mahindra & Mahindra (M&M), Maruti Suzuki, Bajaj Auto, Hero MotoCorp, Eicher",
+    desc: "Measures two-wheeler, commercial vehicle, and passenger car manufacturers reflecting nationwide transport and consumer demand.",
+    quoteUrl: "https://www.google.com/finance/quote/NIFTY_AUTO:INDEXNSE",
+    officialUrl: "https://www.nseindia.com/products-services/indices-niftyauto-index"
+  },
+  {
+    name: "NIFTY Pharma & Healthcare",
+    exchange: "NSE",
+    tier: "Sectoral - Healthcare",
+    catKey: "sectoral",
+    icon: "💊",
+    constituents: "20 Pharma, API & Hospital Chains",
+    coverage: "Generic drugs, API makers & nationwide hospital networks",
+    keyHoldings: "Sun Pharma, Cipla, Dr. Reddy's Labs, Divi's Labs, Apollo Hospitals, Torrent Pharma",
+    desc: "Reflects generic pharmaceutical manufacturers, active pharmaceutical ingredient (API) makers, and hospital chains.",
+    quoteUrl: "https://www.google.com/finance/quote/NIFTY_PHARMA:INDEXNSE",
+    officialUrl: "https://www.nseindia.com/products-services/indices-niftypharma-index"
+  },
+  {
+    name: "NIFTY FMCG",
+    exchange: "NSE",
+    tier: "Sectoral - Consumer Goods",
+    catKey: "sectoral",
+    icon: "🛒",
+    constituents: "15 Fast-Moving Consumer Goods Giants",
+    coverage: "Defensive sector; household staples, packaged foods & personal care",
+    keyHoldings: "Hindustan Unilever (HUL), ITC, Nestle India, Britannia Industries, Godrej Consumer, Dabur",
+    desc: "Tracks leading fast-moving consumer goods giants like Hindustan Unilever and ITC with steady domestic consumption and cash flows.",
+    quoteUrl: "https://www.google.com/finance/quote/NIFTY_FMCG:INDEXNSE",
+    officialUrl: "https://www.nseindia.com/products-services/indices-niftyfmcg-index"
+  },
+  {
+    name: "NIFTY Metal",
+    exchange: "NSE",
+    tier: "Sectoral - Metals & Mining",
+    catKey: "sectoral",
+    icon: "⚙️",
+    constituents: "15 Mining, Steel & Non-Ferrous Heavyweights",
+    coverage: "Cyclical commodity producers, infrastructure supply chain",
+    keyHoldings: "Tata Steel, JSW Steel, Hindalco Industries, Coal India, Vedanta, NMDC, Jindal Steel",
+    desc: "Measures cyclical sectors like steel, aluminium, and mining, highly correlated with domestic construction and global commodity prices.",
+    quoteUrl: "https://www.google.com/finance/quote/NIFTY_METAL:INDEXNSE",
+    officialUrl: "https://www.nseindia.com/products-services/indices-niftymetal-index"
+  },
+  {
+    name: "NIFTY Energy",
+    exchange: "NSE",
+    tier: "Sectoral - Energy & Utilities",
+    catKey: "sectoral",
+    icon: "⚡",
+    constituents: "10 Energy, Petroleum & Power Producers",
+    coverage: "Oil & gas, power generation, refining & renewables",
+    keyHoldings: "Reliance Industries, NTPC, ONGC, Power Grid Corp, BPCL, Tata Power, Adani Green",
+    desc: "Tracks oil & gas, power, petroleum refining, and renewable energy producers powering India's industrial infrastructure.",
+    quoteUrl: "https://www.google.com/finance/quote/NIFTY_ENERGY:INDEXNSE",
+    officialUrl: "https://www.nseindia.com/products-services/indices-niftyenergy-index"
+  },
+  {
+    name: "NIFTY Realty",
+    exchange: "NSE",
+    tier: "Sectoral - Real Estate",
+    catKey: "sectoral",
+    icon: "🏗️",
+    constituents: "10 Premier Real Estate Developers",
+    coverage: "Residential housing, commercial REITs & urban construction",
+    keyHoldings: "DLF, Godrej Properties, Macrotech Developers (Lodha), Oberoi Realty, Phoenix Mills",
+    desc: "Tracks real estate developers and commercial property builders across residential housing and commercial office developments.",
+    quoteUrl: "https://www.google.com/finance/quote/NIFTY_REALTY:INDEXNSE",
+    officialUrl: "https://www.nseindia.com/products-services/indices-niftyrealty-index"
+  },
+  {
+    name: "NIFTY PSE",
+    exchange: "NSE",
+    tier: "Sectoral - Public Sector",
+    catKey: "sectoral",
+    icon: "🏛️",
+    constituents: "20 State-Owned Enterprises (PSUs)",
+    coverage: "Maharatna & Navratna state-owned enterprises (PSUs)",
+    keyHoldings: "State Bank of India (SBI), Coal India, Bharat Electronics (BEL), NTPC, ONGC, PFC, REC, HAL",
+    desc: "Tracks Public Sector Enterprises (state-owned companies) providing strategic infrastructure, sovereign utilities, and high dividend yields.",
+    quoteUrl: "https://www.google.com/finance/quote/NIFTY_PSE:INDEXNSE",
+    officialUrl: "https://www.nseindia.com/products-services/indices-niftycpse-index"
+  }
+];
+
+// ==========================================
 // 5. MAIN APP CONTROLLER & UI
 // ==========================================
 class PulseRemindApp {
@@ -1406,6 +1662,10 @@ class PulseRemindApp {
     this.aiToolsActiveCategory = 'all';
     this.aiToolsSearchQuery = '';
     this.aiToolsViewMode = 'grid';
+    this.indianMarketActiveCategory = 'all';
+    this.indianMarketSearchQuery = '';
+    this.indianMarketViewMode = 'grid';
+    this.indianMarketClockInterval = null;
   }
 
   async init() {
@@ -1448,8 +1708,10 @@ class PulseRemindApp {
     // 8. Ask notification permission politely if not asked
     this.setupNotifications();
 
-    // 9. Initial render of AI Tools directory
+    // 9. Initial render of AI Tools directory & Indian Market Hub
     this.renderAiTools();
+    this.renderIndianMarket();
+    this.startIndianMarketClock();
   }
 
   setupAudioUnlockTrigger() {
@@ -1691,10 +1953,20 @@ class PulseRemindApp {
     const modal = document.getElementById('activeAlarmModal');
     if (!modal) return;
 
-    document.getElementById('alarmModalTitle').textContent = task.title;
-    document.getElementById('alarmModalCategory').textContent = task.category || 'Routine Task';
-    document.getElementById('alarmModalIcon').textContent = task.icon || '⏰';
-    document.getElementById('alarmModalInterval').textContent = `Repeats every ${task.intervalMinutes} mins (${task.startTime} - ${task.endTime})`;
+    const titleEl = document.getElementById('alarmModalTitle');
+    if (titleEl) titleEl.textContent = task.title;
+
+    const catEl = document.getElementById('alarmModalCategory');
+    if (catEl) catEl.textContent = task.category || 'Routine Task';
+
+    const iconEl = document.getElementById('alarmModalIcon');
+    if (iconEl) iconEl.textContent = task.icon || '⏰';
+
+    const descEl = document.getElementById('alarmModalDescription');
+    if (descEl) descEl.textContent = task.description || '';
+
+    const intEl = document.getElementById('alarmModalInterval');
+    if (intEl) intEl.textContent = `Repeats every ${task.intervalMinutes} mins (${task.startTime} - ${task.endTime})`;
 
     // Spoken Voice Announcements Preview in Modal
     const voiceCard = document.getElementById('alarmModalVoiceCard');
@@ -1713,6 +1985,7 @@ class PulseRemindApp {
 
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+    modal.style.zIndex = '99999';
   }
 
   dismissAlarmModal() {
@@ -2674,30 +2947,32 @@ class PulseRemindApp {
     this.currentMainTab = tabName;
     const remindersView = document.getElementById('remindersView');
     const aiToolsView = document.getElementById('aiToolsView');
+    const indianMarketView = document.getElementById('indianMarketView');
     const navReminders = document.getElementById('navTabReminders');
     const navAi = document.getElementById('navTabAiTools');
+    const navIndian = document.getElementById('navTabIndianMarket');
+
+    const inactiveClass = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800/80';
+
+    if (remindersView) remindersView.classList.add('hidden');
+    if (aiToolsView) aiToolsView.classList.add('hidden');
+    if (indianMarketView) indianMarketView.classList.add('hidden');
+
+    if (navReminders) navReminders.className = inactiveClass;
+    if (navAi) navAi.className = inactiveClass;
+    if (navIndian) navIndian.className = inactiveClass;
 
     if (tabName === 'aiTools') {
-      if (remindersView) remindersView.classList.add('hidden');
       if (aiToolsView) aiToolsView.classList.remove('hidden');
-
-      if (navReminders) {
-        navReminders.className = 'flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800/80';
-      }
-      if (navAi) {
-        navAi.className = 'flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer bg-indigo-600 text-white shadow-sm';
-      }
+      if (navAi) navAi.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer bg-indigo-600 text-white shadow-sm';
       this.renderAiTools();
+    } else if (tabName === 'indianMarket') {
+      if (indianMarketView) indianMarketView.classList.remove('hidden');
+      if (navIndian) navIndian.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer bg-emerald-600 text-white shadow-sm';
+      this.renderIndianMarket();
     } else {
       if (remindersView) remindersView.classList.remove('hidden');
-      if (aiToolsView) aiToolsView.classList.add('hidden');
-
-      if (navReminders) {
-        navReminders.className = 'flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer bg-sky-600 text-white shadow-sm';
-      }
-      if (navAi) {
-        navAi.className = 'flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800/80';
-      }
+      if (navReminders) navReminders.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer bg-sky-600 text-white shadow-sm';
     }
   }
 
@@ -2892,6 +3167,292 @@ class PulseRemindApp {
     link.click();
     document.body.removeChild(link);
     this.showToast("Downloaded AI_Tools_Directory.csv!");
+  }
+
+  // ==========================================
+  // INDIAN MARKET INDICES HUB CONTROLLER & METHODS
+  // ==========================================
+  setIndianMarketCategory(catKey) {
+    this.indianMarketActiveCategory = catKey;
+    document.querySelectorAll('.in-cat-pill').forEach(btn => {
+      if (btn.dataset.cat === catKey) {
+        btn.className = 'in-cat-pill px-3 py-1 rounded-xl text-xs font-semibold bg-emerald-600 text-white transition cursor-pointer';
+      } else {
+        btn.className = 'in-cat-pill px-3 py-1 rounded-xl text-xs font-semibold bg-slate-800/80 text-slate-300 hover:text-white transition cursor-pointer';
+      }
+    });
+    this.renderIndianMarket();
+  }
+
+  handleIndianMarketSearch(query) {
+    this.indianMarketSearchQuery = (query || '').toLowerCase().trim();
+    this.renderIndianMarket();
+  }
+
+  setIndianMarketViewMode(mode) {
+    this.indianMarketViewMode = mode;
+    const gridEl = document.getElementById('indianMarketGridContainer');
+    const tableEl = document.getElementById('indianMarketTableContainer');
+    const gridBtn = document.getElementById('inViewGridBtn');
+    const tableBtn = document.getElementById('inViewTableBtn');
+
+    if (mode === 'table') {
+      if (gridEl) gridEl.classList.add('hidden');
+      if (tableEl) tableEl.classList.remove('hidden');
+      if (gridBtn) gridBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition cursor-pointer';
+      if (tableBtn) tableBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 text-white transition cursor-pointer';
+    } else {
+      if (gridEl) gridEl.classList.remove('hidden');
+      if (tableEl) tableEl.classList.add('hidden');
+      if (gridBtn) gridBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 text-white transition cursor-pointer';
+      if (tableBtn) tableBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition cursor-pointer';
+    }
+  }
+
+  startIndianMarketClock() {
+    if (this.indianMarketClockInterval) clearInterval(this.indianMarketClockInterval);
+
+    const updateClock = () => {
+      // Calculate Indian Standard Time (UTC + 5:30)
+      const now = new Date();
+      const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const istMs = utcMs + (5.5 * 3600000);
+      const istDate = new Date(istMs);
+
+      const hours = istDate.getHours();
+      const mins = istDate.getMinutes();
+      const secs = istDate.getSeconds();
+      const day = istDate.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+
+      const hours12 = hours % 12 || 12;
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const timeStr = `${hours12.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')} ${ampm} IST`;
+
+      const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const dayStr = daysOfWeek[day];
+
+      const clockEl = document.getElementById('indianMarketClockText');
+      if (clockEl) {
+        clockEl.textContent = `${dayStr} ${timeStr}`;
+      }
+
+      // NSE / BSE Market Session Logic:
+      // Mon-Fri:
+      // Pre-market: 09:00 - 09:08 IST
+      // Normal Trading: 09:15 - 15:30 IST
+      // Post-market: 15:40 - 16:00 IST
+      const currentIstMinutes = hours * 60 + mins;
+      const isWeekday = (day >= 1 && day <= 5);
+
+      const statusBadge = document.getElementById('indianMarketStatusBadge');
+      const statusDot = document.getElementById('indianMarketStatusDot');
+      const statusText = document.getElementById('indianMarketStatusText');
+
+      if (statusText && statusDot) {
+        if (!isWeekday) {
+          statusText.textContent = 'Market Closed (Weekend)';
+          statusDot.className = 'w-2 h-2 rounded-full bg-rose-500';
+          if (statusBadge) statusBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-950/40 text-rose-300 border border-rose-800/60';
+        } else if (currentIstMinutes >= 9 * 60 + 15 && currentIstMinutes < 15 * 60 + 30) {
+          statusText.textContent = 'Live Market Open (09:15 - 15:30 IST)';
+          statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+          if (statusBadge) statusBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-950/60 text-emerald-300 border border-emerald-700/80';
+        } else if (currentIstMinutes >= 9 * 60 && currentIstMinutes <= 9 * 60 + 8) {
+          statusText.textContent = 'Pre-Open Session (09:00 - 09:08 IST)';
+          statusDot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+          if (statusBadge) statusBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-950/60 text-amber-300 border border-amber-700/80';
+        } else if (currentIstMinutes >= 15 * 60 + 40 && currentIstMinutes <= 16 * 60) {
+          statusText.textContent = 'Post-Closing Session (15:40 - 16:00 IST)';
+          statusDot.className = 'w-2 h-2 rounded-full bg-sky-400';
+          if (statusBadge) statusBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-950/60 text-sky-300 border border-sky-700/80';
+        } else {
+          statusText.textContent = 'Market Closed (Opens 09:15 AM IST)';
+          statusDot.className = 'w-2 h-2 rounded-full bg-slate-400';
+          if (statusBadge) statusBadge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-900/90 text-slate-300 border border-slate-700';
+        }
+      }
+    };
+
+    updateClock();
+    this.indianMarketClockInterval = setInterval(updateClock, 1000);
+  }
+
+  renderIndianMarket() {
+    const gridContainer = document.getElementById('indianMarketGridContainer');
+    const tableBody = document.getElementById('indianMarketTableBody');
+    const countEl = document.getElementById('indianMarketResultCount');
+    if (!gridContainer || !tableBody) return;
+
+    const filtered = INDIAN_MARKET_DATA.filter(item => {
+      const matchCat = (this.indianMarketActiveCategory === 'all' || item.catKey === this.indianMarketActiveCategory);
+      const matchSearch = (!this.indianMarketSearchQuery ||
+        item.name.toLowerCase().includes(this.indianMarketSearchQuery) ||
+        item.desc.toLowerCase().includes(this.indianMarketSearchQuery) ||
+        item.keyHoldings.toLowerCase().includes(this.indianMarketSearchQuery) ||
+        item.tier.toLowerCase().includes(this.indianMarketSearchQuery) ||
+        item.exchange.toLowerCase().includes(this.indianMarketSearchQuery));
+      return matchCat && matchSearch;
+    });
+
+    if (countEl) countEl.textContent = filtered.length;
+
+    if (filtered.length === 0) {
+      gridContainer.innerHTML = `
+        <div class="col-span-full py-16 text-center text-slate-400 space-y-3">
+          <div class="text-4xl">🔍</div>
+          <div class="text-base font-semibold text-white">No Indian market indices found</div>
+          <div class="text-xs text-slate-500">Try clearing your search query or picking another category pill.</div>
+          <button onclick="window.app.setIndianMarketCategory('all'); document.getElementById('indianMarketSearchInput').value=''; window.app.handleIndianMarketSearch('')" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-200 text-xs font-semibold hover:bg-slate-700 transition cursor-pointer">
+            Reset Filters
+          </button>
+        </div>
+      `;
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="6" class="py-12 text-center text-slate-400">No indices matching your filter.</td>
+        </tr>
+      `;
+      return;
+    }
+
+    // 1. Render Cards Grid
+    gridContainer.innerHTML = filtered.map((item, idx) => {
+      return `
+        <div class="glass-panel p-5 rounded-3xl border border-slate-800/90 hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/10 transition flex flex-col justify-between group">
+          <div class="space-y-3.5">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition">
+                  ${item.icon}
+                </div>
+                <div>
+                  <h3 class="text-base font-bold text-white group-hover:text-emerald-300 transition">
+                    ${item.name}
+                  </h3>
+                  <div class="flex items-center gap-1.5 mt-0.5">
+                    <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
+                      ${item.exchange}
+                    </span>
+                    <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                      ${item.tier}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button onclick="window.app.copySingleIndexLink('${item.quoteUrl}', '${item.name}')" title="Copy Google Finance Link" class="p-2 rounded-xl bg-slate-800/60 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer text-xs">
+                📋
+              </button>
+            </div>
+
+            <!-- Universe & Coverage Metric -->
+            <div class="p-2.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-1">
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-slate-400 font-medium">Constituents:</span>
+                <span class="font-bold text-emerald-300">${item.constituents}</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-slate-400 font-medium">Market Coverage:</span>
+                <span class="font-semibold text-slate-200 text-right truncate max-w-[170px]" title="${item.coverage}">${item.coverage}</span>
+              </div>
+            </div>
+
+            <p class="text-xs text-slate-300 leading-relaxed min-h-[44px]">
+              ${item.desc}
+            </p>
+
+            <div class="text-[11px] text-slate-400 bg-slate-900/50 p-2 rounded-xl border border-slate-800/60">
+              <span class="font-bold text-slate-300">Key Stocks:</span> ${item.keyHoldings}
+            </div>
+          </div>
+
+          <!-- Bottom Actions -->
+          <div class="pt-4 mt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+            <a href="${item.officialUrl}" target="_blank" rel="noopener noreferrer" class="text-[11px] text-slate-400 hover:text-sky-400 font-semibold transition cursor-pointer" title="Exchange factsheet & methodology">
+              Factsheet ↗
+            </a>
+            <a href="${item.quoteUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/30 transition cursor-pointer">
+              <span>Live Chart</span>
+              <span>↗</span>
+            </a>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // 2. Render Excel Table
+    tableBody.innerHTML = filtered.map((item, idx) => {
+      const isEven = (idx % 2 === 0);
+      return `
+        <tr class="${isEven ? 'bg-slate-900/40' : 'bg-slate-900/80'} hover:bg-emerald-950/30 transition">
+          <td class="py-3 px-4 text-center font-mono text-slate-500 font-bold">${idx + 1}</td>
+          <td class="py-3 px-4">
+            <div class="flex items-center gap-2 font-bold text-white">
+              <span>${item.icon}</span>
+              <div>
+                <div>${item.name}</div>
+                <span class="text-[10px] text-emerald-400 font-normal font-mono">${item.exchange}</span>
+              </div>
+            </div>
+          </td>
+          <td class="py-3 px-4">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+              ${item.tier}
+            </span>
+          </td>
+          <td class="py-3 px-4">
+            <div class="font-semibold text-white text-xs">${item.constituents}</div>
+            <div class="text-[11px] text-slate-400">${item.coverage}</div>
+          </td>
+          <td class="py-3 px-4 text-slate-300 leading-relaxed">
+            <div class="mb-1">${item.desc}</div>
+            <div class="text-[11px] text-slate-400 font-mono"><strong class="text-slate-300">Constituents:</strong> ${item.keyHoldings}</div>
+          </td>
+          <td class="py-3 px-4 text-right whitespace-nowrap">
+            <div class="flex items-center justify-end gap-2">
+              <button onclick="window.app.copySingleIndexLink('${item.quoteUrl}', '${item.name}')" title="Copy Chart Link" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer text-xs">
+                📋
+              </button>
+              <a href="${item.officialUrl}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer" title="Exchange factsheet">
+                Factsheet ↗
+              </a>
+              <a href="${item.quoteUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition cursor-pointer">
+                <span>Chart ↗</span>
+              </a>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  copySingleIndexLink(url, name) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => {
+        this.showToast(`Copied live chart link for ${name}!`);
+      }).catch(() => {
+        prompt(`Copy chart link for ${name}:`, url);
+      });
+    } else {
+      prompt(`Copy chart link for ${name}:`, url);
+    }
+  }
+
+  copyAllIndianMarketIndices() {
+    const text = INDIAN_MARKET_DATA.map(i => `${i.name}\t${i.exchange}\t${i.tier}\t${i.constituents}\t${i.coverage}\t${i.keyHoldings}\t${i.quoteUrl}`).join('\n');
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => {
+        this.showToast(`Copied all 16 Indian market indices & live chart links to clipboard!`);
+      }).catch(() => {
+        this.downloadIndianMarketCsv();
+      });
+    } else {
+      this.downloadIndianMarketCsv();
+    }
+  }
+
+  downloadIndianMarketCsv() {
+    window.location.href = '/indian_market_indices.csv';
+    this.showToast("Downloading indian_market_indices.csv!");
   }
 }
 

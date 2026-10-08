@@ -136,5 +136,20 @@ class TestPulseRemind(unittest.TestCase):
         # 4. Cleanup test profile
         self.client.delete(f"/api/profiles/{prof_id}")
 
+    def test_csv_endpoints(self):
+        # 1. AI Tools CSV
+        res_ai = self.client.get("/ai_tools.csv")
+        self.assertEqual(res_ai.status_code, 200)
+        self.assertIn("text/csv", res_ai.headers.get("content-type", ""))
+        self.assertIn("Whispr Flow", res_ai.text)
+
+        # 2. Indian Market Indices CSV
+        res_im = self.client.get("/indian_market_indices.csv")
+        self.assertEqual(res_im.status_code, 200)
+        self.assertIn("text/csv", res_im.headers.get("content-type", ""))
+        self.assertIn("NIFTY 50", res_im.text)
+        self.assertIn("BSE SENSEX", res_im.text)
+        self.assertIn("NIFTY Bank", res_im.text)
+
 if __name__ == "__main__":
     unittest.main()

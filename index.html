@@ -126,7 +126,7 @@
   <!-- ========================================================= -->
   <!-- 2. ACTIVE ALARM MODAL (HEADS-UP ALERT DISPLAY)             -->
   <!-- ========================================================= -->
-  <div id="activeAlarmModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/92 backdrop-blur-2xl">
+  <div id="activeAlarmModal" class="fixed inset-0 z-[99999] hidden items-center justify-center p-4 bg-slate-950/95 backdrop-blur-2xl">
     <div class="w-full max-w-lg rounded-3xl p-8 glass-panel shadow-2xl border-2 border-sky-500 text-center relative overflow-hidden alarm-modal-bounce">
       
       <!-- Pulsing Rings Background -->
@@ -208,16 +208,21 @@
         </div>
       </div>
 
-      <!-- Top Navigation Tabs: Reminders vs AI Tools -->
+      <!-- Top Navigation Tabs: Reminders vs AI Tools vs Indian Market -->
       <nav class="flex items-center p-1 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-inner">
-        <button id="navTabReminders" onclick="window.app.switchMainTab('reminders')" class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer bg-sky-600 text-white shadow-sm" title="Interval task alarms and habit routines">
+        <button id="navTabReminders" onclick="window.app.switchMainTab('reminders')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer bg-sky-600 text-white shadow-sm" title="Interval task alarms and habit routines">
           <span>⏰</span>
           <span class="hidden sm:inline">Reminders</span>
         </button>
-        <button id="navTabAiTools" onclick="window.app.switchMainTab('aiTools')" class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800/80" title="Curated master collection of 37 AI tools">
+        <button id="navTabAiTools" onclick="window.app.switchMainTab('aiTools')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800/80" title="Curated master collection of 37 AI tools">
           <span>🤖</span>
-          <span>AI Tools</span>
+          <span class="hidden sm:inline">AI Tools</span>
           <span class="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">37</span>
+        </button>
+        <button id="navTabIndianMarket" onclick="window.app.switchMainTab('indianMarket')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800/80" title="Indian Stock Market Benchmark, Broad Market & Sectoral Indices">
+          <span>📈</span>
+          <span class="hidden sm:inline">Indian Market</span>
+          <span class="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">16</span>
         </button>
       </nav>
 
@@ -526,6 +531,135 @@
             </tr>
           </thead>
           <tbody id="aiToolsTableBody" class="divide-y divide-slate-800/60 text-slate-300">
+            <!-- Injected via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- VIEW 3: INDIAN STOCK MARKET INDICES (NSE & BSE)           -->
+    <!-- ========================================================= -->
+    <div id="indianMarketView" class="hidden space-y-6">
+      
+      <!-- Indian Market Banner with Live IST Market Clock -->
+      <div class="glass-panel p-6 sm:p-8 rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 via-slate-900/70 to-teal-950/30 relative overflow-hidden shadow-2xl">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div class="space-y-2">
+            <div class="flex flex-wrap items-center gap-2 mb-1">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                <span>🇮🇳 National Stock Exchange (NSE) & BSE</span>
+              </span>
+              <div id="indianMarketStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-900/90 text-slate-300 border border-slate-700">
+                <span id="indianMarketStatusDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span id="indianMarketStatusText">Calculating Market Session...</span>
+              </div>
+              <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-slate-900/90 text-sky-300 border border-slate-700">
+                <span>⏰ IST:</span>
+                <span id="indianMarketClockText">--:--:-- IST</span>
+              </div>
+            </div>
+
+            <h2 class="text-2xl sm:text-3xl font-extrabold font-display text-white tracking-tight flex items-center gap-2.5">
+              <span>📈 Indian Stock Market Indices Hub</span>
+            </h2>
+            <p class="text-sm text-slate-300 max-w-2xl leading-relaxed">
+              Complete breakdown of India's Headline Benchmarks, Broad Market Capitalisation Tiers, and Sectoral Leaders across NSE & BSE with live charts and constituent insights.
+            </p>
+          </div>
+          
+          <!-- Actions: Download CSV, Copy, Official Portals -->
+          <div class="flex flex-wrap items-center gap-3">
+            <a href="/indian_market_indices.csv" download="indian_market_indices.csv" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-lg shadow-emerald-600/25 transition cursor-pointer" title="Download entire Indian indices guide as an Excel CSV file">
+              <span>📊</span>
+              <span>Download Excel (CSV)</span>
+            </a>
+            <button onclick="window.app.copyAllIndianMarketIndices()" class="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs transition cursor-pointer" title="Copy all Indian indices and Google Finance chart links to clipboard">
+              <span>📋</span>
+              <span>Copy All Indices</span>
+            </button>
+            <a href="https://www.nseindia.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-sky-400 border border-slate-700 font-semibold text-xs transition cursor-pointer">
+              <span>NSE India ↗</span>
+            </a>
+            <a href="https://www.bseindia.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-amber-400 border border-slate-700 font-semibold text-xs transition cursor-pointer">
+              <span>BSE India ↗</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search, Categories & View Mode Switcher -->
+      <div class="p-4 rounded-3xl bg-slate-900/60 border border-slate-800/80 glass-panel space-y-3">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+          
+          <!-- Search Bar -->
+          <div class="relative w-full sm:w-80">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400 text-xs">🔍</span>
+            <input type="text" id="indianMarketSearchInput" oninput="window.app.handleIndianMarketSearch(this.value)" placeholder="Search indices by name, key stocks, or sector..." class="w-full bg-slate-950 border border-slate-700/80 rounded-2xl pl-9 pr-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition">
+          </div>
+
+          <!-- View Mode: Cards vs Excel Table -->
+          <div class="flex items-center gap-1.5 p-1 bg-slate-950 rounded-2xl border border-slate-800 self-end sm:self-auto">
+            <button id="inViewGridBtn" onclick="window.app.setIndianMarketViewMode('grid')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 text-white transition cursor-pointer">
+              <span>🗂️</span>
+              <span>Cards Grid</span>
+            </button>
+            <button id="inViewTableBtn" onclick="window.app.setIndianMarketViewMode('table')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition cursor-pointer">
+              <span>📑</span>
+              <span>Excel Table</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Category Pills -->
+        <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-800/60" id="indianMarketCategoryBar">
+          <button onclick="window.app.setIndianMarketCategory('all')" data-cat="all" class="in-cat-pill px-3 py-1 rounded-xl text-xs font-semibold bg-emerald-600 text-white transition cursor-pointer">
+            All (16)
+          </button>
+          <button onclick="window.app.setIndianMarketCategory('headline')" data-cat="headline" class="in-cat-pill px-3 py-1 rounded-xl text-xs font-semibold bg-slate-800/80 text-slate-300 hover:text-white transition cursor-pointer">
+            🏆 Headline Benchmarks
+          </button>
+          <button onclick="window.app.setIndianMarketCategory('largecap')" data-cat="largecap" class="in-cat-pill px-3 py-1 rounded-xl text-xs font-semibold bg-slate-800/80 text-slate-300 hover:text-white transition cursor-pointer">
+            🏢 Large-Cap (Next 50 / 100)
+          </button>
+          <button onclick="window.app.setIndianMarketCategory('midsmall')" data-cat="midsmall" class="in-cat-pill px-3 py-1 rounded-xl text-xs font-semibold bg-slate-800/80 text-slate-300 hover:text-white transition cursor-pointer">
+            🚀 Mid-Cap & Small-Cap
+          </button>
+          <button onclick="window.app.setIndianMarketCategory('comprehensive')" data-cat="comprehensive" class="in-cat-pill px-3 py-1 rounded-xl text-xs font-semibold bg-slate-800/80 text-slate-300 hover:text-white transition cursor-pointer">
+            🌐 Comprehensive (500)
+          </button>
+          <button onclick="window.app.setIndianMarketCategory('sectoral')" data-cat="sectoral" class="in-cat-pill px-3 py-1 rounded-xl text-xs font-semibold bg-slate-800/80 text-slate-300 hover:text-white transition cursor-pointer">
+            🏭 Key Sectoral Indices
+          </button>
+        </div>
+      </div>
+
+      <!-- Result Counter & Trading Hours Note -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-400 px-1 gap-1">
+        <div>Showing <span id="indianMarketResultCount" class="font-bold text-white">16</span> Indian market indices</div>
+        <div class="text-[11px] text-slate-500">Trading Hours: 09:15 AM - 03:30 PM IST (Mon-Fri) | Pre-Market: 09:00 - 09:08 AM IST</div>
+      </div>
+
+      <!-- Mode 1: Cards Grid Container -->
+      <div id="indianMarketGridContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <!-- Mode 2: Excel Table Container -->
+      <div id="indianMarketTableContainer" class="hidden overflow-x-auto rounded-3xl border border-slate-800 bg-slate-900/60 glass-panel shadow-xl">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="border-b border-slate-800 bg-slate-950/90 text-slate-400 uppercase font-bold tracking-wider text-[11px]">
+              <th class="py-3.5 px-4 w-12 text-center">#</th>
+              <th class="py-3.5 px-4 w-44">Index Name</th>
+              <th class="py-3.5 px-4 w-36">Category Tier</th>
+              <th class="py-3.5 px-4 w-48">Constituents & Coverage</th>
+              <th class="py-3.5 px-4">Description & Key Holdings</th>
+              <th class="py-3.5 px-4 w-48 text-right">Live Charts & Factsheet</th>
+            </tr>
+          </thead>
+          <tbody id="indianMarketTableBody" class="divide-y divide-slate-800/60 text-slate-300">
             <!-- Injected via JavaScript -->
           </tbody>
         </table>

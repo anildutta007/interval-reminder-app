@@ -492,6 +492,13 @@ async def serve_ai_tools_csv():
         return FileResponse(f, media_type="text/csv", filename="ai_tools.csv")
     return JSONResponse({"status": "Not found"}, status_code=404)
 
+@app.get("/indian_market_indices.csv")
+async def serve_indian_market_indices_csv():
+    f = os.path.join(BASE_DIR, "indian_market_indices.csv")
+    if os.path.exists(f):
+        return FileResponse(f, media_type="text/csv", filename="indian_market_indices.csv")
+    return JSONResponse({"status": "Not found"}, status_code=404)
+
 # Mount static folder
 app.mount("/static", StaticFiles(directory=BASE_DIR), name="static")
 
