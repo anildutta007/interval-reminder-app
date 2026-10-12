@@ -56,8 +56,9 @@ DEFAULT_PROFILE = {
     "id": "default-profile",
     "name": "Anil Dutta",
     "avatar": "👤",
-    "pin": "1234",
-    "pinEnabled": True,
+    "pin": "",
+    "pinEnabled": False,
+    "voiceLang": "en",
     "autoLockMinutes": 0,
     "volume": 0.85,
     "alarmSound": "chime",
@@ -84,6 +85,7 @@ DEFAULT_TASKS = [
         "speechLang": "both",
         "speechTextEn": "Time to drink water! Please take a glass of fresh water to stay hydrated.",
         "speechTextHi": "पानी पीने का समय हो गया है! कृपया एक गिलास ताज़ा पानी पिएं और स्वस्थ रहें।",
+        "speechTextPa": "ਪਾਣੀ ਪੀਣ ਦਾ ਸਮਾਂ ਹੋ ਗਿਆ ਹੈ! ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਗਿਲਾਸ ਤਾਜ਼ਾ ਪਾਣੀ ਪੀਓ ਅਤੇ ਤੰਦਰੁਸਤ ਰਹੋ।",
         "enabled": True,
         "color": "sky",
         "completedCountToday": 0,
@@ -106,6 +108,7 @@ DEFAULT_TASKS = [
         "speechLang": "both",
         "speechTextEn": "Time to stand up and walk! Take a 2-minute walking break to improve blood circulation.",
         "speechTextHi": "उठने और टहलने का समय हो गया है! दो मिनट के लिए टहलिए और सक्रिय रहिए।",
+        "speechTextPa": "ਉੱਠਣ ਅਤੇ ਟਹਿਲਣ ਦਾ ਸਮਾਂ ਹੋ ਗਿਆ ਹੈ! ਬਲੱਡ ਸਰਕੂਲੇਸ਼ਨ ਵਧੀਆ ਰੱਖਣ ਲਈ ਦੋ ਮਿੰਟ ਲਈ ਸੈਰ ਕਰੋ।",
         "enabled": True,
         "color": "emerald",
         "completedCountToday": 0,
@@ -128,6 +131,7 @@ DEFAULT_TASKS = [
         "speechLang": "both",
         "speechTextEn": "Time to stretch your body! Roll your shoulders back and relax your muscles.",
         "speechTextHi": "शरीर को स्ट्रेच करने का समय हो गया है! अपने कंधों और मांसपेशियों को आराम दीजिए।",
+        "speechTextPa": "ਸਰੀਰ ਨੂੰ ਸਟ੍ਰੈਚ ਕਰਨ ਦਾ ਸਮਾਂ ਹੋ ਗਿਆ ਹੈ! ਆਪਣੇ ਮੋਢਿਆਂ, ਗਰਦਨ ਅਤੇ ਮਾਸਪੇਸ਼ੀਆਂ ਨੂੰ ਆਰਾਮ ਦਿਓ।",
         "enabled": True,
         "color": "amber",
         "completedCountToday": 0,
@@ -198,8 +202,9 @@ class ChangePinRequest(BaseModel):
 class ProfileCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=50)
     avatar: str = Field("👤", max_length=10)
-    pin: str = Field(..., min_length=4, max_length=8)
-    pinEnabled: bool = True
+    pin: Optional[str] = ""
+    pinEnabled: bool = False
+    voiceLang: str = "en"
     autoLockMinutes: int = 0
     volume: float = 0.85
     alarmSound: str = "chime"
@@ -210,6 +215,7 @@ class ProfileUpdate(BaseModel):
     name: Optional[str] = None
     avatar: Optional[str] = None
     pinEnabled: Optional[bool] = None
+    voiceLang: Optional[str] = None
     autoLockMinutes: Optional[int] = None
     volume: Optional[float] = None
     alarmSound: Optional[str] = None
@@ -230,9 +236,10 @@ class TaskModel(BaseModel):
     intervalMinutes: int = Field(..., gt=0, le=1440)
     soundTone: str = Field("chime")
     alertType: str = Field("both", description="'both', 'voice', or 'sound'")
-    speechLang: str = Field("both", description="'hi', 'en', or 'both'")
+    speechLang: str = Field("both", description="'hi', 'en', 'pa', 'both', 'en_pa', or 'all'")
     speechTextEn: Optional[str] = ""
     speechTextHi: Optional[str] = ""
+    speechTextPa: Optional[str] = ""
     enabled: bool = True
     color: str = Field("sky")
     completedCountToday: Optional[int] = 0
@@ -262,7 +269,6 @@ async def get_profiles():
     for p in profiles:
         item = dict(p)
         item["hasPin"] = bool(p.get("pin"))
-        # don't return raw pin to public listing
         if "pin" in item:
             del item["pin"]
         sanitized.append(item)
@@ -270,20 +276,8 @@ async def get_profiles():
 
 @app.post("/api/verify-pin")
 async def verify_pin(req: VerifyPinRequest):
-    profiles = load_profiles()
-    profile = next((p for p in profiles if p["id"] == req.profileId), None)
-    if not profile:
-        raise HTTPException(status_code=404, detail="Profile not found")
-    
-    # If pin is disabled on profile, always pass
-    if not profile.get("pinEnabled", True):
-        return {"success": True, "profileId": req.profileId}
-    
-    saved_pin = str(profile.get("pin", ""))
-    if req.pin == saved_pin:
-        return {"success": True, "profileId": req.profileId}
-    else:
-        return {"success": False, "message": "Incorrect PIN"}
+    # App is configured with PIN disabled so it stays active all the time
+    return {"success": True, "profileId": req.profileId}
 
 @app.post("/api/change-pin")
 async def change_pin(req: ChangePinRequest):
@@ -291,13 +285,8 @@ async def change_pin(req: ChangePinRequest):
     profile = next((p for p in profiles if p["id"] == req.profileId), None)
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
-    
-    current_pin = str(profile.get("pin", ""))
-    if current_pin and req.oldPin is not None and req.oldPin != current_pin:
-        raise HTTPException(status_code=400, detail="Current PIN is incorrect")
-    
     profile["pin"] = str(req.newPin)
-    profile["pinEnabled"] = True
+    profile["pinEnabled"] = False
     save_profiles(profiles)
     return {"success": True, "message": "PIN updated successfully"}
 
@@ -309,9 +298,10 @@ async def create_profile(req: ProfileCreate):
         "id": new_id,
         "name": req.name,
         "avatar": req.avatar,
-        "pin": req.pin,
-        "pinEnabled": req.pinEnabled,
-        "autoLockMinutes": req.autoLockMinutes,
+        "pin": req.pin or "",
+        "pinEnabled": False,
+        "voiceLang": req.voiceLang or "en",
+        "autoLockMinutes": 0,
         "volume": req.volume,
         "alarmSound": req.alarmSound,
         "soundRepeatCount": req.soundRepeatCount,
@@ -334,8 +324,9 @@ async def create_profile(req: ProfileCreate):
 
     # Return sanitized profile
     res = dict(new_profile)
-    del res["pin"]
-    res["hasPin"] = True
+    if "pin" in res:
+        del res["pin"]
+    res["hasPin"] = False
     return res
 
 @app.put("/api/profiles/{profile_id}")

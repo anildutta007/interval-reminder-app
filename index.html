@@ -48,83 +48,7 @@
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-sky-500 selection:text-white">
 
   <!-- ========================================================= -->
-  <!-- 1. FULLSCREEN PIN LOCK SCREEN (PROTECTION MODAL)          -->
-  <!-- ========================================================= -->
-  <div id="pinLockOverlay" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-2xl transition-all duration-300">
-    <div id="pinKeypadCard" class="w-full max-w-sm rounded-3xl p-8 glass-panel shadow-2xl border border-slate-700/80 text-center relative overflow-hidden">
-      
-      <!-- Top Decorative Glow -->
-      <div class="absolute -top-12 -left-12 w-36 h-36 bg-sky-500/20 rounded-full blur-2xl pointer-events-none"></div>
-      <div class="absolute -bottom-12 -right-12 w-36 h-36 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none"></div>
-
-      <!-- Profile Avatar & Greeting -->
-      <div class="relative mb-4">
-        <div class="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-4xl shadow-lg shadow-sky-500/30 ring-4 ring-slate-800">
-          <span id="lockProfileAvatar">👤</span>
-        </div>
-      </div>
-
-      <h2 class="text-xl font-bold font-display text-white mb-1">
-        Welcome, <span id="lockProfileName" class="text-sky-400">Anil</span>
-      </h2>
-      <p class="text-xs text-slate-400 mb-6">Enter your security PIN to unlock tasks</p>
-
-      <!-- 4 PIN Dots Indicator -->
-      <div class="flex items-center justify-center gap-3.5 mb-6">
-        <div class="pin-dot w-4 h-4 rounded-full bg-slate-700 border border-slate-600 transition-all"></div>
-        <div class="pin-dot w-4 h-4 rounded-full bg-slate-700 border border-slate-600 transition-all"></div>
-        <div class="pin-dot w-4 h-4 rounded-full bg-slate-700 border border-slate-600 transition-all"></div>
-        <div class="pin-dot w-4 h-4 rounded-full bg-slate-700 border border-slate-600 transition-all"></div>
-      </div>
-
-      <!-- Error Message -->
-      <div id="pinErrorMessage" class="hidden text-xs text-red-400 font-medium mb-4 bg-red-950/40 py-1.5 px-3 rounded-lg border border-red-800/50">
-        Incorrect PIN. Default is 1234.
-      </div>
-
-      <!-- Numeric Keypad Grid -->
-      <div class="grid grid-cols-3 gap-3 mb-6">
-        <button onclick="window.app.handlePinInput('1')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">1</button>
-        <button onclick="window.app.handlePinInput('2')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">2</button>
-        <button onclick="window.app.handlePinInput('3')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">3</button>
-        
-        <button onclick="window.app.handlePinInput('4')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">4</button>
-        <button onclick="window.app.handlePinInput('5')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">5</button>
-        <button onclick="window.app.handlePinInput('6')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">6</button>
-        
-        <button onclick="window.app.handlePinInput('7')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">7</button>
-        <button onclick="window.app.handlePinInput('8')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">8</button>
-        <button onclick="window.app.handlePinInput('9')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">9</button>
-        
-        <button onclick="window.app.handlePinClear()" class="keypad-btn h-14 rounded-2xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-semibold uppercase tracking-wider transition cursor-pointer">Clear</button>
-        <button onclick="window.app.handlePinInput('0')" class="keypad-btn h-14 rounded-2xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-xl font-bold font-mono text-white transition cursor-pointer">0</button>
-        <button onclick="window.app.handlePinBackspace()" class="keypad-btn h-14 rounded-2xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white text-lg transition cursor-pointer flex items-center justify-center">⌫</button>
-      </div>
-
-      <!-- Bottom Hint & Helper -->
-      <div class="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800">
-        <button onclick="alert('Default initial PIN is 1234. You can change this anytime in Profile Settings.')" class="hover:text-sky-300 transition cursor-pointer underline decoration-dotted">
-          Forgot PIN?
-        </button>
-        <span class="text-slate-500 font-mono text-[11px]">Type keys 0-9 on keyboard</span>
-      </div>
-
-      <!-- Multi-User Switcher & Registration for Housemates / Friends -->
-      <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
-        <button onclick="window.app.openProfileSwitchModal()" class="text-sky-400 hover:text-sky-300 font-semibold transition cursor-pointer flex items-center gap-1.5" title="Switch to another family member or user profile">
-          <span>👥</span>
-          <span>Switch User</span>
-        </button>
-        <button onclick="window.app.openCreateProfileModal()" class="text-emerald-400 hover:text-emerald-300 font-semibold transition cursor-pointer flex items-center gap-1.5" title="Create a new profile for yourself or a friend">
-          <span>✨</span>
-          <span>+ New Profile</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================================================= -->
-  <!-- 2. ACTIVE ALARM MODAL (HEADS-UP ALERT DISPLAY)             -->
+  <!-- 1. ACTIVE ALARM MODAL (HEADS-UP ALERT DISPLAY)             -->
   <!-- ========================================================= -->
   <div id="activeAlarmModal" class="fixed inset-0 z-[99999] hidden items-center justify-center p-4 bg-slate-950/95 backdrop-blur-2xl">
     <div class="w-full max-w-lg rounded-3xl p-8 glass-panel shadow-2xl border-2 border-sky-500 text-center relative overflow-hidden alarm-modal-bounce">
@@ -155,16 +79,19 @@
         <div class="flex items-center justify-between mb-2">
           <span class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
             <span>🗣️ Spoken Announcement</span>
-            <span class="text-[10px] bg-indigo-900/80 px-2 py-0.5 rounded text-indigo-200">Hindi & English Voice</span>
+            <span id="alarmModalVoiceBadge" class="text-[10px] bg-indigo-900/80 px-2 py-0.5 rounded text-indigo-200">English, Hindi & Punjabi</span>
           </span>
           <button onclick="if(window.app.activeAlarmTask) window.app.sound.voice.speakTask(window.app.activeAlarmTask)" class="px-2.5 py-1 rounded-lg bg-indigo-600/40 hover:bg-indigo-600 text-indigo-200 hover:text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1">
             <span>🔊 Re-speak</span>
           </button>
         </div>
-        <div id="alarmModalVoiceHi" class="text-sm font-semibold text-white mb-1">
+        <div id="alarmModalVoicePa" class="text-sm font-semibold text-amber-300 mb-1 hidden">
+          <!-- Spoken Punjabi text -->
+        </div>
+        <div id="alarmModalVoiceHi" class="text-sm font-semibold text-white mb-1 hidden">
           <!-- Spoken Hindi text -->
         </div>
-        <div id="alarmModalVoiceEn" class="text-xs text-slate-300">
+        <div id="alarmModalVoiceEn" class="text-xs text-slate-300 hidden">
           <!-- Spoken English text -->
         </div>
       </div>
@@ -262,6 +189,13 @@
           <span class="sm:hidden">Test</span>
         </button>
 
+        <!-- Voice Language Selector Button in Header -->
+        <button id="navVoiceLangBtn" onclick="window.app.openVoiceLanguageModal()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-950/60 text-indigo-300 border border-indigo-700/60 hover:bg-indigo-900/60 transition cursor-pointer" title="Choose Voice Language: English, Hindi, Punjabi">
+          <span>🗣️</span>
+          <span id="navVoiceLangLabel">Voice: English</span>
+          <span class="text-[10px] text-indigo-400">▾</span>
+        </button>
+
         <!-- Sound Volume Slider (Compact) -->
         <div class="hidden lg:flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-full border border-slate-800">
           <span class="text-xs text-slate-400">🔈</span>
@@ -272,17 +206,10 @@
         </div>
 
         <!-- User Profile Pill -->
-        <button onclick="window.app.openProfileModal()" title="Profile & PIN Settings" class="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 transition cursor-pointer">
+        <button onclick="window.app.openProfileModal()" title="Profile Settings & Switcher" class="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 transition cursor-pointer">
           <span id="navProfileAvatar" class="text-lg">👤</span>
           <span id="navProfileName" class="text-xs font-semibold text-white hidden sm:inline">Anil Dutta</span>
           <span class="text-xs text-slate-400">⚙️</span>
-        </button>
-
-        <!-- Lock App Button -->
-        <button id="lockAppNavBtn" title="Lock App with PIN" class="p-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-sky-400 border border-slate-800 transition cursor-pointer">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
         </button>
 
       </div>
@@ -787,12 +714,12 @@
           </div>
         </div>
 
-        <!-- Voice-Over & Alarm Style (Hindi & English) -->
+        <!-- Voice-Over & Alarm Style (English, Hindi & Punjabi) -->
         <div class="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-900/60 space-y-3">
           <div class="flex items-center justify-between">
             <label class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
               <span>🗣️ Voice-Over Language & Style</span>
-              <span class="text-[10px] bg-indigo-900/80 text-indigo-200 px-2 py-0.5 rounded font-medium">Hindi & English</span>
+              <span class="text-[10px] bg-indigo-900/80 text-indigo-200 px-2 py-0.5 rounded font-medium">English, Hindi & Punjabi</span>
             </label>
           </div>
 
@@ -808,11 +735,25 @@
             <div>
               <label class="block text-[11px] text-slate-400 mb-1">Language Spoken</label>
               <select id="taskFormSpeechLang" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
-                <option value="both">🌐 Bilingual (English + Hindi)</option>
-                <option value="hi">🇮🇳 Hindi Only (केवल हिंदी)</option>
                 <option value="en">🇬🇧 English Only</option>
+                <option value="hi">🇮🇳 Hindi Only (केवल हिंदी)</option>
+                <option value="pa">🌾 Punjabi Only (ਕੇਵਲ ਪੰਜਾਬੀ)</option>
+                <option value="both">🌐 English + Hindi (Bilingual)</option>
+                <option value="en_pa">🌐 English + Punjabi (Bilingual)</option>
+                <option value="all">🌐 All 3 (English + Hindi + Punjabi)</option>
               </select>
             </div>
+          </div>
+
+          <!-- Spoken English Message -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-[11px] text-slate-300 font-medium">🇬🇧 English Voice Message</label>
+              <button type="button" onclick="window.app.previewVoice('en')" class="text-[11px] text-sky-400 hover:text-sky-300 font-semibold cursor-pointer">
+                🔊 Listen English
+              </button>
+            </div>
+            <input type="text" id="taskFormSpeechEn" placeholder="e.g. Time to drink water! Please take a glass of fresh water." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
           </div>
 
           <!-- Spoken Hindi Message -->
@@ -826,15 +767,15 @@
             <input type="text" id="taskFormSpeechHi" placeholder="e.g. पानी पीने का समय हो गया है! कृपया एक गिलास ताज़ा पानी पिएं।" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-sans">
           </div>
 
-          <!-- Spoken English Message -->
+          <!-- Spoken Punjabi Message -->
           <div>
             <div class="flex items-center justify-between mb-1">
-              <label class="text-[11px] text-slate-300 font-medium">🇬🇧 English Voice Message</label>
-              <button type="button" onclick="window.app.previewVoice('en')" class="text-[11px] text-sky-400 hover:text-sky-300 font-semibold cursor-pointer">
-                🔊 Listen English
+              <label class="text-[11px] text-slate-300 font-medium">🌾 Punjabi Voice Message (ਪੰਜਾਬੀ ਸੁਨੇਹਾ)</label>
+              <button type="button" onclick="window.app.previewVoice('pa')" class="text-[11px] text-amber-400 hover:text-amber-300 font-semibold cursor-pointer">
+                🔊 Listen Punjabi (ਸੁਣੋ)
               </button>
             </div>
-            <input type="text" id="taskFormSpeechEn" placeholder="e.g. Time to drink water! Please take a glass of fresh water." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+            <input type="text" id="taskFormSpeechPa" placeholder="ਉਦਾਹਰਣ: ਪਾਣੀ ਪੀਣ ਦਾ ਸਮਾਂ ਹੋ ਗਿਆ ਹੈ! ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਗਿਲਾਸ ਤਾਜ਼ਾ ਪਾਣੀ ਪੀਓ।" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-sans">
           </div>
         </div>
 
@@ -860,8 +801,8 @@
       
       <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
         <div>
-          <h2 class="text-xl font-bold font-display text-white">Profile & Security Settings</h2>
-          <p class="text-xs text-slate-400">Manage user profiles, PIN lock & sound preferences</p>
+          <h2 class="text-xl font-bold font-display text-white">Profile & Voice Settings</h2>
+          <p class="text-xs text-slate-400">Manage user profiles and default alarm voice language</p>
         </div>
         <button onclick="window.app.closeProfileModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-sm cursor-pointer">
           ✕
@@ -886,44 +827,58 @@
             </div>
           </div>
 
-          <div class="flex items-center justify-between pt-2">
-            <div>
-              <span class="text-xs font-semibold text-slate-200">Require PIN Lock</span>
-              <p class="text-[11px] text-slate-400">Lock app with PIN upon launch</p>
-            </div>
-            <input type="checkbox" id="settingsPinEnabled" class="w-4 h-4 rounded text-sky-500 bg-slate-900 border-slate-700 focus:ring-sky-500 cursor-pointer">
-          </div>
-
           <button type="button" onclick="window.app.saveProfileBasicSettings()" class="w-full mt-2 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-sky-400 border border-slate-700 cursor-pointer">
             Save Profile Info
           </button>
         </div>
 
-        <!-- Change Security PIN -->
-        <div class="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3">
-          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Change Security PIN</h3>
-          
-          <div>
-            <label class="block text-xs text-slate-400 mb-1">Current PIN</label>
-            <input type="password" id="settingsOldPin" maxlength="8" placeholder="Current PIN (default: 1234)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-sky-500">
+        <!-- Alarm Voice Language Preference -->
+        <div class="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-900/60 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-300">🗣️ Alarm Voice Language</h3>
+            <span class="text-[10px] bg-indigo-900/80 px-2 py-0.5 rounded text-indigo-200">English, Hindi & Punjabi</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Choose which language PulseRemind speaks aloud for your alarm reminders:
+          </p>
+
+          <div class="grid grid-cols-3 gap-2.5">
+            <label class="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-700 bg-slate-900/80 hover:border-indigo-500 cursor-pointer transition text-center">
+              <input type="radio" name="profileVoiceLangRadio" value="en" class="mb-1.5 accent-indigo-500">
+              <span class="text-xs font-bold text-white">🇬🇧 English</span>
+              <span class="text-[10px] text-slate-400">English Prompts</span>
+            </label>
+            <label class="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-700 bg-slate-900/80 hover:border-indigo-500 cursor-pointer transition text-center">
+              <input type="radio" name="profileVoiceLangRadio" value="hi" class="mb-1.5 accent-indigo-500">
+              <span class="text-xs font-bold text-white">🇮🇳 Hindi</span>
+              <span class="text-[10px] text-slate-400">केवल हिंदी</span>
+            </label>
+            <label class="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-700 bg-slate-900/80 hover:border-indigo-500 cursor-pointer transition text-center">
+              <input type="radio" name="profileVoiceLangRadio" value="pa" class="mb-1.5 accent-indigo-500">
+              <span class="text-xs font-bold text-white">🌾 Punjabi</span>
+              <span class="text-[10px] text-slate-400">ਕੇਵਲ ਪੰਜਾਬੀ</span>
+            </label>
           </div>
 
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs text-slate-400 mb-1">New 4-8 Digit PIN</label>
-              <input type="password" id="settingsNewPin" maxlength="8" placeholder="New PIN" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-sky-500">
-            </div>
-            <div>
-              <label class="block text-xs text-slate-400 mb-1">Confirm New PIN</label>
-              <input type="password" id="settingsConfirmPin" maxlength="8" placeholder="Confirm" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-sky-500">
-            </div>
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-800 bg-slate-950/60 hover:border-slate-700 cursor-pointer text-xs text-slate-300">
+              <input type="radio" name="profileVoiceLangRadio" value="both" class="accent-indigo-500">
+              <span>🌐 English + Hindi (Bilingual)</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-800 bg-slate-950/60 hover:border-slate-700 cursor-pointer text-xs text-slate-300">
+              <input type="radio" name="profileVoiceLangRadio" value="en_pa" class="accent-indigo-500">
+              <span>🌐 English + Punjabi (Bilingual)</span>
+            </label>
           </div>
 
-          <span id="settingsPinMsg" class="hidden text-xs"></span>
-
-          <button type="button" onclick="window.app.saveNewPinFromSettings()" class="w-full py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/30 transition cursor-pointer">
-            Update Security PIN
-          </button>
+          <div class="flex items-center justify-between pt-2 border-t border-indigo-900/40">
+            <button type="button" onclick="window.app.previewSelectedProfileVoice()" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold cursor-pointer flex items-center gap-1">
+              <span>🔊</span> Test Sample Voice
+            </button>
+            <button type="button" onclick="window.app.saveProfileVoiceLang()" class="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-md shadow-indigo-600/30 cursor-pointer">
+              Save Voice Language
+            </button>
+          </div>
         </div>
 
         <!-- Multi-Profile Switcher -->
@@ -998,8 +953,14 @@
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Set 4-Digit Security PIN *</label>
-          <input type="password" id="newProfPin" required minlength="4" maxlength="8" placeholder="e.g. 5678" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-sky-500">
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Alarm Voice Language</label>
+          <select id="newProfVoiceLang" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500">
+            <option value="en">🇬🇧 English</option>
+            <option value="hi">🇮🇳 Hindi (हिंदी)</option>
+            <option value="pa">🌾 Punjabi (ਪੰਜਾਬੀ)</option>
+            <option value="both">🌐 English + Hindi (Bilingual)</option>
+            <option value="en_pa">🌐 English + Punjabi (Bilingual)</option>
+          </select>
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
@@ -1007,6 +968,98 @@
           <button type="submit" class="px-4 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/30 cursor-pointer">Create Profile</button>
         </div>
       </form>
+
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- 9. VOICE LANGUAGE SELECTION MODAL (ENGLISH / HINDI / PUNJABI) -->
+  <!-- ========================================================= -->
+  <div id="voiceLanguageModal" class="fixed inset-0 z-[70] hidden items-center justify-center p-4 bg-slate-950/90 backdrop-blur-2xl">
+    <div class="w-full max-w-lg rounded-3xl p-6 sm:p-8 glass-panel shadow-2xl border-2 border-indigo-500/50 text-center relative overflow-hidden">
+      
+      <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-3xl shadow-lg shadow-indigo-500/20">
+        🗣️
+      </div>
+
+      <h2 class="text-2xl font-extrabold font-display text-white mb-1">
+        Choose Your Alarm Voice Language
+      </h2>
+      <p class="text-xs text-slate-300 mb-6 max-w-md mx-auto">
+        Which language would you like PulseRemind to speak aloud for your task reminders? You can change this anytime.
+      </p>
+
+      <!-- 3 Primary Language Choice Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-5 text-left">
+        
+        <!-- Option 1: English -->
+        <div onclick="window.app.selectVoiceLangOption('en')" id="voiceCard-en" class="voice-lang-card p-4 rounded-2xl border-2 border-slate-700 bg-slate-900/80 hover:border-indigo-400 hover:bg-slate-800/80 cursor-pointer transition flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-2xl">🇬🇧</span>
+              <span id="voiceCheck-en" class="voice-check hidden w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">✓</span>
+            </div>
+            <div class="font-bold text-white text-base group-hover:text-indigo-300 transition">English</div>
+            <p class="text-[11px] text-slate-400 mt-1">Clear British, American or Indian English voice.</p>
+          </div>
+          <button type="button" onclick="event.stopPropagation(); window.app.previewVoice('en')" class="mt-3 w-full py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-sky-300 flex items-center justify-center gap-1 cursor-pointer">
+            <span>🔊</span> Listen
+          </button>
+        </div>
+
+        <!-- Option 2: Hindi -->
+        <div onclick="window.app.selectVoiceLangOption('hi')" id="voiceCard-hi" class="voice-lang-card p-4 rounded-2xl border-2 border-slate-700 bg-slate-900/80 hover:border-indigo-400 hover:bg-slate-800/80 cursor-pointer transition flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-2xl">🇮🇳</span>
+              <span id="voiceCheck-hi" class="voice-check hidden w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">✓</span>
+            </div>
+            <div class="font-bold text-white text-base group-hover:text-indigo-300 transition">हिंदी (Hindi)</div>
+            <p class="text-[11px] text-slate-400 mt-1">स्पष्ट, मधुर और प्राकृतिक हिंदी आवाज़।</p>
+          </div>
+          <button type="button" onclick="event.stopPropagation(); window.app.previewVoice('hi')" class="mt-3 w-full py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-emerald-300 flex items-center justify-center gap-1 cursor-pointer">
+            <span>🔊</span> सुनें
+          </button>
+        </div>
+
+        <!-- Option 3: Punjabi -->
+        <div onclick="window.app.selectVoiceLangOption('pa')" id="voiceCard-pa" class="voice-lang-card p-4 rounded-2xl border-2 border-slate-700 bg-slate-900/80 hover:border-indigo-400 hover:bg-slate-800/80 cursor-pointer transition flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-2xl">🌾</span>
+              <span id="voiceCheck-pa" class="voice-check hidden w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">✓</span>
+            </div>
+            <div class="font-bold text-white text-base group-hover:text-indigo-300 transition">ਪੰਜਾਬੀ (Punjabi)</div>
+            <p class="text-[11px] text-slate-400 mt-1">ਸਪੱਸ਼ਟ, ਮਿੱਠੀ ਅਤੇ ਆਸਾਨ ਪੰਜਾਬੀ ਆਵਾਜ਼।</p>
+          </div>
+          <button type="button" onclick="event.stopPropagation(); window.app.previewVoice('pa')" class="mt-3 w-full py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-amber-300 flex items-center justify-center gap-1 cursor-pointer">
+            <span>🔊</span> ਸੁਣੋ
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Bilingual Alternatives -->
+      <div class="p-3 rounded-2xl bg-slate-900/60 border border-slate-800/80 mb-5 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-300">
+        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+          <input type="radio" name="quickVoiceLangModalRadio" value="both" onchange="window.app.selectVoiceLangOption('both')" class="accent-indigo-500">
+          <span>🌐 English + Hindi (Bilingual)</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+          <input type="radio" name="quickVoiceLangModalRadio" value="en_pa" onchange="window.app.selectVoiceLangOption('en_pa')" class="accent-indigo-500">
+          <span>🌐 English + Punjabi (Bilingual)</span>
+        </label>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center justify-center gap-3">
+        <button type="button" onclick="window.app.closeVoiceLanguageModal()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer">
+          Keep Current
+        </button>
+        <button type="button" onclick="window.app.confirmVoiceLanguageChoice()" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 cursor-pointer">
+          Confirm Voice Language
+        </button>
+      </div>
 
     </div>
   </div>

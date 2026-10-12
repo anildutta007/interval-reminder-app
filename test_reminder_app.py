@@ -29,12 +29,13 @@ class TestPulseRemind(unittest.TestCase):
         profiles = res.json()
         self.assertIsInstance(profiles, list)
         self.assertGreaterEqual(len(profiles), 1)
-        # Verify raw pin is not leaked
+        # Verify raw pin is not leaked and pinEnabled is disabled for always-active mode
         self.assertNotIn("pin", profiles[0])
-        self.assertTrue(profiles[0]["hasPin"])
+        self.assertFalse(profiles[0].get("pinEnabled", True))
+        self.assertIn("voiceLang", profiles[0])
 
-    def test_verify_pin_success_and_failure(self):
-        # 1. Correct PIN (default is 1234)
+    def test_verify_pin_always_allows_access(self):
+        # PIN option removed so app stays active continuously without blocking
         res = self.client.post("/api/verify-pin", json={
             "profileId": "default-profile",
             "pin": "1234"
@@ -42,13 +43,12 @@ class TestPulseRemind(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertTrue(res.json()["success"])
 
-        # 2. Incorrect PIN
-        res_fail = self.client.post("/api/verify-pin", json={
+        res_any = self.client.post("/api/verify-pin", json={
             "profileId": "default-profile",
-            "pin": "9999"
+            "pin": "anything"
         })
-        self.assertEqual(res_fail.status_code, 200)
-        self.assertFalse(res_fail.json()["success"])
+        self.assertEqual(res_any.status_code, 200)
+        self.assertTrue(res_any.json()["success"])
 
     def test_get_tasks_for_profile(self):
         res = self.client.get("/api/tasks?profileId=default-profile")
@@ -57,16 +57,19 @@ class TestPulseRemind(unittest.TestCase):
         self.assertIsInstance(tasks, list)
         task_titles = [t["title"] for t in tasks]
         
-        # Verify required 3 default tasks exist with Hindi & English voice prompts!
+        # Verify required 3 default tasks exist with English, Hindi & Punjabi voice prompts!
         self.assertIn("Drink Water", task_titles)
         self.assertIn("Standup and walk", task_titles)
         self.assertIn("Stretch your body", task_titles)
         water_task = next(t for t in tasks if t["title"] == "Drink Water")
+        self.assertIn("speechTextEn", water_task)
         self.assertIn("speechTextHi", water_task)
+        self.assertIn("speechTextPa", water_task)
         self.assertIn("पानी", water_task["speechTextHi"])
+        self.assertIn("ਪਾਣੀ", water_task["speechTextPa"])
 
     def test_task_lifecycle(self):
-        # 1. Create a task with Hindi and English voice configuration
+        # 1. Create a task with English, Hindi, and Punjabi voice configuration
         new_task_payload = {
             "profileId": "default-profile",
             "title": "Test 20-20-20 Eye Rest",
@@ -78,9 +81,10 @@ class TestPulseRemind(unittest.TestCase):
             "intervalMinutes": 20,
             "soundTone": "marimba",
             "alertType": "both",
-            "speechLang": "both",
+            "speechLang": "all",
             "speechTextEn": "Rest your eyes!",
             "speechTextHi": "आंखों को विश्राम दीजिए!",
+            "speechTextPa": "ਆਪਣੀਆਂ ਅੱਖਾਂ ਨੂੰ ਆਰਾਮ ਦਿਓ!",
             "enabled": True,
             "color": "purple"
         }
@@ -90,6 +94,7 @@ class TestPulseRemind(unittest.TestCase):
         task_id = created["id"]
         self.assertEqual(created["title"], "Test 20-20-20 Eye Rest")
         self.assertEqual(created["speechTextHi"], "आंखों को विश्राम दीजिए!")
+        self.assertEqual(created["speechTextPa"], "ਆਪਣੀਆਂ ਅੱਖਾਂ ਨੂੰ ਆਰਾਮ ਦਿਓ!")
 
         # 2. Complete task
         res_comp = self.client.post(f"/api/tasks/{task_id}/complete")
@@ -106,29 +111,34 @@ class TestPulseRemind(unittest.TestCase):
         self.assertEqual(res_del.status_code, 200)
 
     def test_multi_user_profile_lifecycle(self):
-        # 1. Create a new user profile
+        # 1. Create a new user profile with Punjabi voice language preference
         new_prof_payload = {
             "name": "Priya",
             "avatar": "🌸",
-            "pin": "5678",
-            "pinEnabled": True
+            "voiceLang": "pa",
+            "pin": "",
+            "pinEnabled": False
         }
         res_create = self.client.post("/api/profiles", json=new_prof_payload)
         self.assertEqual(res_create.status_code, 200)
         created_prof = res_create.json()
         prof_id = created_prof["id"]
         self.assertEqual(created_prof["name"], "Priya")
+        self.assertEqual(created_prof["voiceLang"], "pa")
 
-        # 2. Verify new profile has its own initialized tasks
+        # 2. Verify new profile has its own initialized tasks with Punjabi voice
         res_tasks = self.client.get(f"/api/tasks?profileId={prof_id}")
         self.assertEqual(res_tasks.status_code, 200)
         tasks = res_tasks.json()
         self.assertGreaterEqual(len(tasks), 3)
+        water = next(t for t in tasks if t["title"] == "Drink Water")
+        self.assertIn("speechTextPa", water)
+        self.assertIn("ਪਾਣੀ", water["speechTextPa"])
 
-        # 3. Verify PIN verification works for the new user
+        # 3. Verify PIN verification always allows access
         res_pin = self.client.post("/api/verify-pin", json={
             "profileId": prof_id,
-            "pin": "5678"
+            "pin": ""
         })
         self.assertEqual(res_pin.status_code, 200)
         self.assertTrue(res_pin.json()["success"])

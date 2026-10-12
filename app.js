@@ -29,18 +29,38 @@ class VoiceEngine {
       this.initVoices();
     }
     const clean = (langCode || 'en').toLowerCase();
-    if (clean === 'hi' || clean.includes('hi')) {
-      // 1. Direct Hindi voice (Microsoft Heera, Google हिन्दी, etc.)
-      const hiVoice = this.voices.find(v => v.lang.toLowerCase().includes('hi'));
+
+    // 1. Punjabi voice matching (pa, pa-IN, Punjabi, Panjabi, etc.)
+    if (clean === 'pa' || clean.includes('pa') || clean.includes('punj') || clean.includes('panj')) {
+      const paVoice = this.voices.find(v => {
+        const vl = (v.lang || '').toLowerCase();
+        const vn = (v.name || '').toLowerCase();
+        return vl.startsWith('pa') || vl.includes('pa-') || vl.includes('pa_') ||
+               vn.includes('punjabi') || vn.includes('panjabi') || vn.includes('ਪੰਜਾਬੀ');
+      });
+      if (paVoice) return paVoice;
+
+      // Fallback 1: Indian Hindi voice (shares Indic phonetics)
+      const hiVoice = this.voices.find(v => (v.lang || '').toLowerCase().includes('hi'));
       if (hiVoice) return hiVoice;
-      // 2. Fallback to Indian English (has natural Indian phonetics)
-      const indVoice = this.voices.find(v => v.lang.toLowerCase().includes('in'));
+
+      // Fallback 2: Indian English voice
+      const indVoice = this.voices.find(v => (v.lang || '').toLowerCase().includes('in'));
       if (indVoice) return indVoice;
     }
-    // English voice: prefer Indian/UK/US English
-    const enVoice = this.voices.find(v => v.lang.toLowerCase() === 'en-in') ||
-                    this.voices.find(v => v.lang.toLowerCase() === 'en-gb') ||
-                    this.voices.find(v => v.lang.toLowerCase().startsWith('en'));
+
+    // 2. Hindi voice matching
+    if (clean === 'hi' || clean.includes('hi')) {
+      const hiVoice = this.voices.find(v => (v.lang || '').toLowerCase().includes('hi'));
+      if (hiVoice) return hiVoice;
+      const indVoice = this.voices.find(v => (v.lang || '').toLowerCase().includes('in'));
+      if (indVoice) return indVoice;
+    }
+
+    // 3. English voice: prefer Indian, UK, or US English
+    const enVoice = this.voices.find(v => (v.lang || '').toLowerCase() === 'en-in') ||
+                    this.voices.find(v => (v.lang || '').toLowerCase() === 'en-gb') ||
+                    this.voices.find(v => (v.lang || '').toLowerCase().startsWith('en'));
     return enVoice || null;
   }
 
@@ -57,7 +77,10 @@ class VoiceEngine {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 0.92; // Clear, measured, pleasant cadence
       utterance.pitch = 1.0;
-      utterance.lang = (lang === 'hi' || lang.includes('hi')) ? 'hi-IN' : 'en-US';
+
+      const isPa = (lang === 'pa' || lang.includes('pa') || lang.includes('punj') || lang.includes('panj'));
+      const isHi = (lang === 'hi' || lang.includes('hi'));
+      utterance.lang = isPa ? 'pa-IN' : (isHi ? 'hi-IN' : 'en-US');
 
       const matchedVoice = this.getVoice(lang);
       if (matchedVoice) {
@@ -104,13 +127,29 @@ class VoiceEngine {
     const lang = task.speechLang || 'both';
     const textEn = task.speechTextEn || `Time to ${task.title}. ${task.description || ''}`;
     const textHi = task.speechTextHi || `${task.title} का समय हो गया है।`;
+    const textPa = task.speechTextPa || `${task.title} ਦਾ ਸਮਾਂ ਹੋ ਗਿਆ ਹੈ।`;
 
-    if (lang === 'hi') {
+    if (lang === 'pa') {
+      this.speak(textPa, 'pa', onDone);
+    } else if (lang === 'hi') {
       this.speak(textHi, 'hi', onDone);
     } else if (lang === 'en') {
       this.speak(textEn, 'en', onDone);
+    } else if (lang === 'en_pa') {
+      // Bilingual: English prompt first, then Punjabi prompt
+      this.speakSequence([
+        { text: textEn, lang: 'en' },
+        { text: textPa, lang: 'pa' }
+      ], onDone);
+    } else if (lang === 'all') {
+      // Trilingual: English, Hindi, and Punjabi prompts
+      this.speakSequence([
+        { text: textEn, lang: 'en' },
+        { text: textHi, lang: 'hi' },
+        { text: textPa, lang: 'pa' }
+      ], onDone);
     } else {
-      // Bilingual mode: Speaks English prompt first, then Hindi prompt!
+      // Bilingual: English prompt first, then Hindi prompt
       this.speakSequence([
         { text: textEn, lang: 'en' },
         { text: textHi, lang: 'hi' }
@@ -531,8 +570,9 @@ class DataStore {
       id: 'default-profile',
       name: 'Anil Dutta',
       avatar: '👤',
-      pin: '1234',
-      pinEnabled: true,
+      pin: '',
+      pinEnabled: false,
+      voiceLang: 'en',
       autoLockMinutes: 0,
       volume: 0.85,
       alarmSound: 'chime',
@@ -566,38 +606,11 @@ class DataStore {
       }
     }
 
-    // Local check
-    const p = this.profiles.find(x => x.id === profileId);
-    if (!p) return false;
-    if (p.pinEnabled === false) return true;
-    return String(p.pin) === String(pin);
+    // Local check - PIN is removed, always succeeds
+    return true;
   }
 
   async changePin(profileId, oldPin, newPin) {
-    if (this.isApiAvailable) {
-      try {
-        const res = await fetch('/api/change-pin', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profileId, oldPin, newPin })
-        });
-        if (res.ok) return true;
-        const err = await res.json();
-        throw new Error(err.detail || 'Failed to update PIN');
-      } catch (e) {
-        throw e;
-      }
-    }
-
-    // Local check
-    const p = this.profiles.find(x => x.id === profileId);
-    if (!p) throw new Error('Profile not found');
-    if (p.pin && oldPin && String(p.pin) !== String(oldPin)) {
-      throw new Error('Current PIN is incorrect');
-    }
-    p.pin = String(newPin);
-    p.pinEnabled = true;
-    this.saveProfilesLocal();
     return true;
   }
 
@@ -625,9 +638,10 @@ class DataStore {
       id: newId,
       name: data.name,
       avatar: data.avatar || '👤',
-      pin: data.pin,
-      pinEnabled: data.pinEnabled !== false,
-      autoLockMinutes: data.autoLockMinutes || 0,
+      pin: '',
+      pinEnabled: false,
+      voiceLang: data.voiceLang || 'en',
+      autoLockMinutes: 0,
       volume: data.volume || 0.85,
       alarmSound: data.alarmSound || 'chime',
       soundRepeatCount: 3,
@@ -692,6 +706,7 @@ class DataStore {
         speechLang: "both",
         speechTextEn: "Time to drink water! Please take a glass of fresh water to stay hydrated.",
         speechTextHi: "पानी पीने का समय हो गया है! कृपया एक गिलास ताज़ा पानी पिएं और स्वस्थ रहें।",
+        speechTextPa: "ਪਾਣੀ ਪੀਣ ਦਾ ਸਮਾਂ ਹੋ ਗਿਆ ਹੈ! ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਗਿਲਾਸ ਤਾਜ਼ਾ ਪਾਣੀ ਪੀਓ ਅਤੇ ਤੰਦਰੁਸਤ ਰਹੋ।",
         enabled: true,
         color: "sky",
         completedCountToday: 0,
@@ -714,6 +729,7 @@ class DataStore {
         speechLang: "both",
         speechTextEn: "Time to stand up and walk! Take a 2-minute walking break to improve blood circulation.",
         speechTextHi: "उठने और टहलने का समय हो गया है! दो मिनट के लिए टहलिए और सक्रिय रहिए।",
+        speechTextPa: "ਉੱਠਣ ਅਤੇ ਟਹਿਲਣ ਦਾ ਸਮਾਂ ਹੋ ਗਿਆ ਹੈ! ਬਲੱਡ ਸਰਕੂਲੇਸ਼ਨ ਵਧੀਆ ਰੱਖਣ ਲਈ ਦੋ ਮਿੰਟ ਲਈ ਸੈਰ ਕਰੋ।",
         enabled: true,
         color: "emerald",
         completedCountToday: 0,
@@ -736,6 +752,7 @@ class DataStore {
         speechLang: "both",
         speechTextEn: "Time to stretch your body! Roll your shoulders back and relax your muscles.",
         speechTextHi: "शरीर को स्ट्रेच करने का समय हो गया है! अपने कंधों और मांसपेशियों को आराम दीजिए।",
+        speechTextPa: "ਸਰੀਰ ਨੂੰ ਸਟ੍ਰੈਚ ਕਰਨ ਦਾ ਸਮਾਂ ਹੋ ਗਿਆ ਹੈ! ਆਪਣੇ ਮੋਢਿਆਂ, ਗਰਦਨ ਅਤੇ ਮਾਸਪੇਸ਼ੀਆਂ ਨੂੰ ਆਰਾਮ ਦਿਓ।",
         enabled: true,
         color: "amber",
         completedCountToday: 0,
@@ -1648,8 +1665,9 @@ class PulseRemindApp {
     this.sound = new SoundEngine();
     this.dataStore = new DataStore();
     this.scheduler = null;
-    this.currentPinInput = '';
-    this.isAppLocked = true;
+    this.isAppLocked = false;
+    this.selectedVoiceLang = 'en';
+    this.pendingVoiceLang = 'en';
     this.activeFilter = 'all';
     this.searchQuery = '';
     this.editingTaskId = null;
@@ -1698,17 +1716,22 @@ class PulseRemindApp {
     // 6. Bind UI event listeners
     this.bindEvents();
 
-    // 7. Check PIN lock requirement
-    if (this.dataStore.currentProfile && this.dataStore.currentProfile.pinEnabled) {
-      this.showPinLockScreen();
-    } else {
-      this.unlockApp();
+    // 7. Ensure app remains active and unlocked continuously (PIN removed)
+    this.unlockApp();
+    this.updateVoiceLangUI();
+
+    // 8. Ask user to choose alarm voice language (English / Hindi / Punjabi) if first time
+    const hasChosenVoice = localStorage.getItem('pulseremind_user_chose_voice_lang');
+    if (!hasChosenVoice) {
+      setTimeout(() => {
+        this.openVoiceLanguageModal();
+      }, 500);
     }
 
-    // 8. Ask notification permission politely if not asked
+    // 9. Ask notification permission politely if not asked
     this.setupNotifications();
 
-    // 9. Initial render of AI Tools directory & Indian Market Hub
+    // 10. Initial render of AI Tools directory & Indian Market Hub
     this.renderAiTools();
     this.renderIndianMarket();
     this.startIndianMarketClock();
@@ -1813,12 +1836,17 @@ class PulseRemindApp {
   setCurrentProfile(profile) {
     this.dataStore.currentProfile = profile;
     localStorage.setItem('pulseremind_active_profile_id', profile.id);
+    if (profile.voiceLang) {
+      this.selectedVoiceLang = profile.voiceLang;
+      localStorage.setItem('pulseremind_voice_lang', profile.voiceLang);
+    }
     if (profile.volume !== undefined) {
       this.sound.setVolume(profile.volume);
       const volSlider = document.getElementById('globalVolumeSlider');
       if (volSlider) volSlider.value = Math.round(profile.volume * 100);
     }
     this.updateProfileBadgeUI();
+    this.updateVoiceLangUI();
     this.dataStore.loadTasks(profile.id).then(() => {
       this.renderTasks();
     });
@@ -1831,11 +1859,6 @@ class PulseRemindApp {
     const avatarEl = document.getElementById('navProfileAvatar');
     if (nameEl) nameEl.textContent = prof.name;
     if (avatarEl) avatarEl.textContent = prof.avatar || '👤';
-
-    const lockName = document.getElementById('lockProfileName');
-    const lockAvatar = document.getElementById('lockProfileAvatar');
-    if (lockName) lockName.textContent = prof.name;
-    if (lockAvatar) lockAvatar.textContent = prof.avatar || '👤';
   }
 
   startLiveClock() {
@@ -1855,90 +1878,130 @@ class PulseRemindApp {
   }
 
   // ==========================================
-  // PIN LOCK & SECURITY LOGIC
+  // APP LIFECYCLE & VOICE LANGUAGE SELECTION
   // ==========================================
-  showPinLockScreen() {
-    this.isAppLocked = true;
-    this.currentPinInput = '';
-    this.updatePinDots();
-    const overlay = document.getElementById('pinLockOverlay');
-    if (overlay) {
-      overlay.classList.remove('hidden');
-      overlay.classList.add('flex');
-    }
-    const errText = document.getElementById('pinErrorMessage');
-    if (errText) errText.classList.add('hidden');
-  }
-
   unlockApp() {
     this.isAppLocked = false;
     this.sound.initAudio();
     this.updateAudioIndicator();
-    const overlay = document.getElementById('pinLockOverlay');
-    if (overlay) {
-      overlay.classList.add('hidden');
-      overlay.classList.remove('flex');
-    }
     this.renderTasks();
   }
 
-  handlePinInput(char) {
-    this.sound.initAudio();
-    if (this.currentPinInput.length >= 6) return;
-    this.currentPinInput += char;
-    this.updatePinDots();
+  showPinLockScreen() {
+    // PIN lock is permanently removed per user request
+    this.unlockApp();
+  }
 
-    if (this.currentPinInput.length === 4) {
-      setTimeout(() => this.submitPin(), 120);
+  getVoiceLangDisplayName(lang) {
+    switch (lang) {
+      case 'pa': return 'ਪੰਜਾਬੀ (Punjabi)';
+      case 'hi': return 'हिंदी (Hindi)';
+      case 'en': return 'English';
+      case 'en_pa': return 'English + ਪੰਜਾਬੀ (Bilingual)';
+      case 'both': return 'English + हिंदी (Bilingual)';
+      case 'all': return 'English + हिंदी + ਪੰਜਾਬੀ (Trilingual)';
+      default: return 'English';
     }
   }
 
-  handlePinBackspace() {
-    if (this.currentPinInput.length > 0) {
-      this.currentPinInput = this.currentPinInput.slice(0, -1);
-      this.updatePinDots();
+  updateVoiceLangUI() {
+    const prof = this.dataStore.currentProfile;
+    const currentLang = (prof && prof.voiceLang) || localStorage.getItem('pulseremind_voice_lang') || this.selectedVoiceLang || 'en';
+    this.selectedVoiceLang = currentLang;
+
+    // 1. Update Header Button Label
+    const navLabel = document.getElementById('navVoiceLangLabel');
+    if (navLabel) {
+      let icon = '🗣️';
+      let title = 'English';
+      if (currentLang === 'pa') { icon = '🌾'; title = 'ਪੰਜਾਬੀ'; }
+      else if (currentLang === 'hi') { icon = '🇮🇳'; title = 'हिंदी'; }
+      else if (currentLang === 'both') { icon = '🌐'; title = 'En + Hi'; }
+      else if (currentLang === 'en_pa') { icon = '🌐'; title = 'En + Pa'; }
+      navLabel.textContent = `${icon} Voice: ${title}`;
+    }
+
+    // 2. Update Profile Settings Modal Radios
+    const radio = document.querySelector(`input[name="profileVoiceLangRadio"][value="${currentLang}"]`);
+    if (radio) radio.checked = true;
+  }
+
+  openVoiceLanguageModal() {
+    const modal = document.getElementById('voiceLanguageModal');
+    if (!modal) return;
+
+    const prof = this.dataStore.currentProfile;
+    const currentLang = (prof && prof.voiceLang) || localStorage.getItem('pulseremind_voice_lang') || this.selectedVoiceLang || 'en';
+    this.pendingVoiceLang = currentLang;
+
+    this.selectVoiceLangOption(currentLang);
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  closeVoiceLanguageModal() {
+    const modal = document.getElementById('voiceLanguageModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
     }
   }
 
-  handlePinClear() {
-    this.currentPinInput = '';
-    this.updatePinDots();
-  }
+  selectVoiceLangOption(lang) {
+    this.pendingVoiceLang = lang;
 
-  updatePinDots() {
-    const dots = document.querySelectorAll('.pin-dot');
-    dots.forEach((dot, idx) => {
-      if (idx < this.currentPinInput.length) {
-        dot.className = 'pin-dot w-4 h-4 rounded-full bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.8)] scale-110 transition-all';
-      } else {
-        dot.className = 'pin-dot w-4 h-4 rounded-full bg-slate-700 border border-slate-600 transition-all';
+    // Reset card highlight borders
+    ['en', 'hi', 'pa'].forEach(l => {
+      const card = document.getElementById(`voiceCard-${l}`);
+      const check = document.getElementById(`voiceCheck-${l}`);
+      if (card) {
+        if (l === lang) {
+          card.classList.add('border-indigo-400', 'bg-slate-800/90', 'ring-2', 'ring-indigo-500/50');
+          card.classList.remove('border-slate-700', 'bg-slate-900/80');
+        } else {
+          card.classList.remove('border-indigo-400', 'bg-slate-800/90', 'ring-2', 'ring-indigo-500/50');
+          card.classList.add('border-slate-700', 'bg-slate-900/80');
+        }
+      }
+      if (check) {
+        if (l === lang) {
+          check.classList.remove('hidden');
+        } else {
+          check.classList.add('hidden');
+        }
       }
     });
+
+    // Handle bilingual radio options
+    const radio = document.querySelector(`input[name="quickVoiceLangModalRadio"][value="${lang}"]`);
+    if (radio) {
+      radio.checked = true;
+    } else {
+      document.querySelectorAll('input[name="quickVoiceLangModalRadio"]').forEach(r => r.checked = false);
+    }
   }
 
-  async submitPin() {
-    const profile = this.dataStore.currentProfile;
-    if (!profile) return;
+  async confirmVoiceLanguageChoice() {
+    const chosenLang = this.pendingVoiceLang || 'en';
+    this.selectedVoiceLang = chosenLang;
+    localStorage.setItem('pulseremind_user_chose_voice_lang', 'true');
+    localStorage.setItem('pulseremind_voice_lang', chosenLang);
 
-    const isValid = await this.dataStore.verifyPin(profile.id, this.currentPinInput);
-    if (isValid) {
-      this.sound.playTone('marimba', 0.4);
-      this.unlockApp();
-    } else {
-      const keypad = document.getElementById('pinKeypadCard');
-      const errText = document.getElementById('pinErrorMessage');
-      if (keypad) {
-        keypad.classList.add('shake-animation');
-        setTimeout(() => keypad.classList.remove('shake-animation'), 450);
-      }
-      if (errText) {
-        errText.textContent = 'Incorrect PIN. Default is 1234 or your customized PIN.';
-        errText.classList.remove('hidden');
-      }
-      this.currentPinInput = '';
-      this.updatePinDots();
-      this.sound.playTone('urgent', 0.2);
+    const prof = this.dataStore.currentProfile;
+    if (prof) {
+      prof.voiceLang = chosenLang;
+      await this.dataStore.updateProfile(prof.id, { voiceLang: chosenLang });
     }
+
+    this.closeVoiceLanguageModal();
+    this.updateVoiceLangUI();
+    this.showToast(`Voice set to ${this.getVoiceLangDisplayName(chosenLang)}!`);
+
+    // Voice greeting confirmation
+    setTimeout(() => {
+      this.previewVoice(chosenLang);
+    }, 200);
   }
 
   // ==========================================
@@ -1964,9 +2027,12 @@ class PulseRemindApp {
   fireBrowserNotification(task) {
     if ('Notification' in window && Notification.permission === 'granted') {
       try {
-        const bodyText = (task.speechLang === 'hi' && task.speechTextHi)
-          ? task.speechTextHi
-          : (task.speechTextEn || task.description || `Time to ${task.title}!`);
+        let bodyText = task.speechTextEn || task.description || `Time to ${task.title}!`;
+        if (task.speechLang === 'pa' && task.speechTextPa) {
+          bodyText = task.speechTextPa;
+        } else if (task.speechLang === 'hi' && task.speechTextHi) {
+          bodyText = task.speechTextHi;
+        }
 
         const notif = new Notification(`⏰ PulseRemind: ${task.title}`, {
           body: bodyText,
@@ -2024,14 +2090,51 @@ class PulseRemindApp {
     const voiceCard = document.getElementById('alarmModalVoiceCard');
     const enTextEl = document.getElementById('alarmModalVoiceEn');
     const hiTextEl = document.getElementById('alarmModalVoiceHi');
+    const paTextEl = document.getElementById('alarmModalVoicePa');
+    const badgeEl = document.getElementById('alarmModalVoiceBadge');
 
     if (voiceCard) {
       if (task.alertType === 'sound') {
         voiceCard.classList.add('hidden');
       } else {
         voiceCard.classList.remove('hidden');
-        if (enTextEl) enTextEl.textContent = task.speechTextEn || `Time to ${task.title}!`;
-        if (hiTextEl) hiTextEl.textContent = task.speechTextHi || `${task.title} का समय हो गया है!`;
+        const lang = task.speechLang || 'both';
+
+        if (enTextEl) {
+          enTextEl.textContent = task.speechTextEn || `Time to ${task.title}!`;
+          if (lang === 'hi' || lang === 'pa') {
+            enTextEl.classList.add('hidden');
+          } else {
+            enTextEl.classList.remove('hidden');
+          }
+        }
+
+        if (hiTextEl) {
+          hiTextEl.textContent = task.speechTextHi || `${task.title} का समय हो गया है!`;
+          if (lang === 'hi' || lang === 'both' || lang === 'all') {
+            hiTextEl.classList.remove('hidden');
+          } else {
+            hiTextEl.classList.add('hidden');
+          }
+        }
+
+        if (paTextEl) {
+          paTextEl.textContent = task.speechTextPa || `${task.title} ਦਾ ਸਮਾਂ ਹੋ ਗਿਆ ਹੈ!`;
+          if (lang === 'pa' || lang === 'en_pa' || lang === 'all') {
+            paTextEl.classList.remove('hidden');
+          } else {
+            paTextEl.classList.add('hidden');
+          }
+        }
+
+        if (badgeEl) {
+          if (lang === 'pa') badgeEl.textContent = 'ਪੰਜਾਬੀ (Punjabi)';
+          else if (lang === 'hi') badgeEl.textContent = 'हिंदी (Hindi)';
+          else if (lang === 'en') badgeEl.textContent = 'English';
+          else if (lang === 'en_pa') badgeEl.textContent = 'English + ਪੰਜਾਬੀ';
+          else if (lang === 'all') badgeEl.textContent = 'English, हिंदी & ਪੰਜਾਬੀ';
+          else badgeEl.textContent = 'English & हिंदी';
+        }
       }
     }
 
@@ -2391,11 +2494,31 @@ class PulseRemindApp {
 
   previewVoice(lang) {
     this.sound.initAudio();
-    if (lang === 'hi') {
-      const text = document.getElementById('taskFormSpeechHi').value || 'पानी पीने का समय हो गया है!';
+    if (lang === 'pa') {
+      const text = document.getElementById('taskFormSpeechPa')?.value ||
+                   'ਸਤਿ ਸ਼੍ਰੀ ਅਕਾਲ! ਇਹ ਤੁਹਾਡੀ ਪੰਜਾਬੀ ਰੀਮਾਈਂਡਰ ਆਵਾਜ਼ ਹੈ। ਤੁਹਾਡੀ ਸਿਹਤ ਅਤੇ ਸਮਾਂ ਸਾਡੀ ਪਹਿਲ ਹੈ।';
+      this.sound.voice.speak(text, 'pa');
+    } else if (lang === 'hi') {
+      const text = document.getElementById('taskFormSpeechHi')?.value ||
+                   'नमस्ते! यह आपकी हिंदी रिमाइंडर आवाज़ है। आपका स्वास्थ्य और समय हमारी प्राथमिकता है।';
       this.sound.voice.speak(text, 'hi');
+    } else if (lang === 'both') {
+      const textEn = document.getElementById('taskFormSpeechEn')?.value || 'PulseRemind voice test.';
+      const textHi = document.getElementById('taskFormSpeechHi')?.value || 'पल्स रिमाइंड आवाज़ टेस्ट।';
+      this.sound.voice.speakSequence([
+        { text: textEn, lang: 'en' },
+        { text: textHi, lang: 'hi' }
+      ]);
+    } else if (lang === 'en_pa') {
+      const textEn = document.getElementById('taskFormSpeechEn')?.value || 'PulseRemind voice test.';
+      const textPa = document.getElementById('taskFormSpeechPa')?.value || 'ਪਲਸ ਰੀਮਾਈਂਡ ਆਵਾਜ਼ ਟੈਸਟ।';
+      this.sound.voice.speakSequence([
+        { text: textEn, lang: 'en' },
+        { text: textPa, lang: 'pa' }
+      ]);
     } else {
-      const text = document.getElementById('taskFormSpeechEn').value || 'Time to drink water! Stay hydrated.';
+      const text = document.getElementById('taskFormSpeechEn')?.value ||
+                   'Hello! This is your English reminder voice. Ready to keep you healthy and on track.';
       this.sound.voice.speak(text, 'en');
     }
   }
@@ -2415,11 +2538,18 @@ class PulseRemindApp {
       } catch (e) {}
     }
 
+    const curLang = (this.dataStore.currentProfile && this.dataStore.currentProfile.voiceLang) ||
+                    localStorage.getItem('pulseremind_voice_lang') || this.selectedVoiceLang || 'en';
+
     // Fire test desktop notification so user sees the Windows popup right now!
     if ('Notification' in window && Notification.permission === 'granted') {
       try {
+        let notifBody = 'Sound, voice, and desktop popups are working perfectly!';
+        if (curLang === 'pa') notifBody = 'ਅਲਾਰਮ ਸਾਊਂਡ, ਪੰਜਾਬੀ ਆਵਾਜ਼ ਅਤੇ ਡੈਸਕਟੌਪ ਪੌਪ-ਅੱਪ ਬਿਲਕੁਲ ਸਹੀ ਕੰਮ ਕਰ ਰਹੇ ਹਨ!';
+        else if (curLang === 'hi') notifBody = 'अलार्म साउंड, हिंदी आवाज़ और डेस्कटॉप पॉप-अप बिल्कुल सही काम कर रहे हैं!';
+
         const notif = new Notification('⏰ PulseRemind: Test Alarm & Voice', {
-          body: 'Sound, bilingual voice, and desktop popups are working perfectly!',
+          body: notifBody,
           icon: '/static/favicon.ico',
           tag: `test-alarm-popup-${Date.now()}`
         });
@@ -2433,14 +2563,35 @@ class PulseRemindApp {
     // 1. Play Crystal Bell Chime
     this.sound.playTone('chime', 0.9);
 
-    // 2. Play Bilingual Speech (English followed by Hindi)
+    // 2. Play Speech in active voice language
     setTimeout(() => {
-      this.sound.voice.speakSequence([
-        { text: 'PulseRemind sound and voice are working perfectly!', lang: 'en' },
-        { text: 'आवाज़ और अलार्म बिल्कुल सही काम कर रहे हैं!', lang: 'hi' }
-      ], () => {
-        this.showToast('Test complete: Sound, voice, and popups are active!');
-      });
+      if (curLang === 'pa') {
+        this.sound.voice.speak('ਪਲਸ ਰੀਮਾਈਂਡ ਆਵਾਜ਼ ਅਤੇ ਅਲਾਰਮ ਬਿਲਕੁਲ ਸਹੀ ਕੰਮ ਕਰ ਰਹੇ ਹਨ!', 'pa', () => {
+          this.showToast('Test complete: Sound, Punjabi voice, and popups are active!');
+        });
+      } else if (curLang === 'hi') {
+        this.sound.voice.speak('पल्स रिमाइंड आवाज़ और अलार्म बिल्कुल सही काम कर रहे हैं!', 'hi', () => {
+          this.showToast('Test complete: Sound, Hindi voice, and popups are active!');
+        });
+      } else if (curLang === 'en_pa') {
+        this.sound.voice.speakSequence([
+          { text: 'PulseRemind sound and voice are working perfectly!', lang: 'en' },
+          { text: 'ਪਲਸ ਰੀਮਾਈਂਡ ਆਵਾਜ਼ ਅਤੇ ਅਲਾਰਮ ਬਿਲਕੁਲ ਸਹੀ ਕੰਮ ਕਰ ਰਹੇ ਹਨ!', lang: 'pa' }
+        ], () => {
+          this.showToast('Test complete: Sound, bilingual English & Punjabi voice active!');
+        });
+      } else if (curLang === 'both') {
+        this.sound.voice.speakSequence([
+          { text: 'PulseRemind sound and voice are working perfectly!', lang: 'en' },
+          { text: 'पल्स रिमाइंड आवाज़ और अलार्म बिल्कुल सही काम कर रहे हैं!', lang: 'hi' }
+        ], () => {
+          this.showToast('Test complete: Sound, bilingual English & Hindi voice active!');
+        });
+      } else {
+        this.sound.voice.speak('PulseRemind sound and voice are working perfectly!', 'en', () => {
+          this.showToast('Test complete: Sound, English voice, and popups are active!');
+        });
+      }
     }, 850);
 
     this.showToast('Testing Alarm: Chime, Voice & Desktop Popup...');
@@ -2504,9 +2655,10 @@ class PulseRemindApp {
     let interval = 45;
     let soundTone = 'chime';
     let alertType = 'both';
-    let speechLang = 'both';
+    let speechLang = this.dataStore.currentProfile?.voiceLang || 'both';
     let speechEn = '';
     let speechHi = '';
+    let speechPa = '';
     let color = 'sky';
 
     if (templateName === 'water') {
@@ -2519,9 +2671,9 @@ class PulseRemindApp {
       interval = 45;
       soundTone = 'marimba';
       alertType = 'both';
-      speechLang = 'both';
       speechEn = 'Time to drink water! Please take a glass of fresh water to stay hydrated.';
       speechHi = 'पानी पीने का समय हो गया है! कृपया एक गिलास ताज़ा पानी पिएं और स्वस्थ रहें।';
+      speechPa = 'ਪਾਣੀ ਪੀਣ ਦਾ ਸਮਾਂ ਹੋ ਗਿਆ ਹੈ! ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਗਿਲਾਸ ਤਾਜ਼ਾ ਪਾਣੀ ਪੀਓ ਅਤੇ ਤੰਦਰੁਸਤ ਰਹੋ।';
       color = 'sky';
     } else if (templateName === 'walk') {
       title = 'Standup and walk';
@@ -2533,9 +2685,9 @@ class PulseRemindApp {
       interval = 60;
       soundTone = 'digital';
       alertType = 'both';
-      speechLang = 'both';
       speechEn = 'Time to stand up and walk! Take a 2-minute walking break to improve blood circulation.';
       speechHi = 'उठने और टहलने का समय हो गया है! दो मिनट के लिए टहलिए और सक्रिय रहिए।';
+      speechPa = 'ਉੱਠਣ ਅਤੇ ਟਹਿਲਣ ਦਾ ਸਮਾਂ ਹੋ ਗਿਆ ਹੈ! ਬਲੱਡ ਸਰਕੂਲੇਸ਼ਨ ਵਧੀਆ ਰੱਖਣ ਲਈ ਦੋ ਮਿੰਟ ਲਈ ਸੈਰ ਕਰੋ।';
       color = 'emerald';
     } else if (templateName === 'stretch') {
       title = 'Stretch your body';
@@ -2547,9 +2699,9 @@ class PulseRemindApp {
       interval = 90;
       soundTone = 'bell';
       alertType = 'both';
-      speechLang = 'both';
       speechEn = 'Time to stretch your body! Roll your shoulders back and relax your muscles.';
       speechHi = 'शरीर को स्ट्रेच करने का समय हो गया है! अपने कंधों और मांसपेशियों को आराम दीजिए।';
+      speechPa = 'ਸਰੀਰ ਨੂੰ ਸਟ੍ਰੈਚ ਕਰਨ ਦਾ ਸਮਾਂ ਹੋ ਗਿਆ ਹੈ! ਆਪਣੇ ਮੋਢਿਆਂ, ਗਰਦਨ ਅਤੇ ਮਾਸਪੇਸ਼ੀਆਂ ਨੂੰ ਆਰਾਮ ਦਿਓ।';
       color = 'amber';
     } else if (templateName === 'eye') {
       title = '20-20-20 Eye Rest';
@@ -2561,9 +2713,9 @@ class PulseRemindApp {
       interval = 20;
       soundTone = 'echo';
       alertType = 'both';
-      speechLang = 'both';
       speechEn = 'Time to rest your eyes! Look at an object 20 feet away for 20 seconds.';
       speechHi = 'आंखों को आराम देने का समय हो गया है! बीस फीट दूर देखकर आंखों को विश्राम दें।';
+      speechPa = 'ਅੱਖਾਂ ਨੂੰ ਆਰਾਮ ਦੇਣ ਦਾ ਸਮਾਂ ਹੋ ਗਿਆ ਹੈ! ਵੀਹ ਸਕਿੰਟਾਂ ਲਈ ਵੀਹ ਫੁੱਟ ਦੂਰ ਕਿਸੇ ਚੀਜ਼ ਨੂੰ ਦੇਖੋ।';
       color = 'purple';
     } else if (templateName === 'posture') {
       title = 'Posture Check & Deep Breath';
@@ -2575,15 +2727,15 @@ class PulseRemindApp {
       interval = 30;
       soundTone = 'harpsichord';
       alertType = 'both';
-      speechLang = 'both';
       speechEn = 'Posture check! Sit straight and take three slow, deep breaths.';
       speechHi = 'अपनी मुद्रा ठीक करें! सीधे बैठिए और तीन गहरी सांसें लीजिए।';
+      speechPa = 'ਆਪਣਾ ਪੋਸਚਰ ਸਹੀ ਕਰੋ! ਸਿੱਧੇ ਬੈਠੋ ਅਤੇ ਤਿੰਨ ਲੰਬੇ ਡੂੰਘੇ ਸਾਹ ਲਓ।';
       color = 'rose';
     } else if (templateName === 'test1m') {
       title = '1-Minute Quick Test Alarm';
       category = 'Quick Test';
       icon = '⚡';
-      description = 'Quick 1-minute test alarm to verify sounds and Hindi & English spoken announcements.';
+      description = 'Quick 1-minute test alarm to verify sounds and Hindi, English, & Punjabi spoken announcements.';
       const now = new Date();
       const pad = n => String(n).padStart(2, '0');
       startTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
@@ -2591,9 +2743,9 @@ class PulseRemindApp {
       interval = 1;
       soundTone = 'chime';
       alertType = 'both';
-      speechLang = 'both';
       speechEn = 'Quick test successful! PulseRemind alarm and English voice are working properly.';
       speechHi = 'क्विक टेस्ट सफल हुआ! अलार्म और हिंदी आवाज़ बिल्कुल सही काम कर रहे हैं।';
+      speechPa = 'ਕਵਿੱਕ ਟੈਸਟ ਸਫਲ ਰਿਹਾ! ਅਲਾਰਮ ਅਤੇ ਪੰਜਾਬੀ ਆਵਾਜ਼ ਬਿਲਕੁਲ ਸਹੀ ਕੰਮ ਕਰ ਰਹੇ ਹਨ।';
       color = 'sky';
     }
 
@@ -2609,6 +2761,8 @@ class PulseRemindApp {
     document.getElementById('taskFormSpeechLang').value = speechLang;
     document.getElementById('taskFormSpeechEn').value = speechEn;
     document.getElementById('taskFormSpeechHi').value = speechHi;
+    const paInput = document.getElementById('taskFormSpeechPa');
+    if (paInput) paInput.value = speechPa;
     document.getElementById('taskFormColor').value = color;
 
     const modal = document.getElementById('taskEditModal');
@@ -2635,6 +2789,8 @@ class PulseRemindApp {
     document.getElementById('taskFormSpeechLang').value = task.speechLang || 'both';
     document.getElementById('taskFormSpeechEn').value = task.speechTextEn || '';
     document.getElementById('taskFormSpeechHi').value = task.speechTextHi || '';
+    const paInput = document.getElementById('taskFormSpeechPa');
+    if (paInput) paInput.value = task.speechTextPa || '';
     document.getElementById('taskFormColor').value = task.color || 'sky';
 
     const modal = document.getElementById('taskEditModal');
@@ -2669,6 +2825,7 @@ class PulseRemindApp {
       speechLang: document.getElementById('taskFormSpeechLang').value || 'both',
       speechTextEn: document.getElementById('taskFormSpeechEn').value.trim(),
       speechTextHi: document.getElementById('taskFormSpeechHi').value.trim(),
+      speechTextPa: (document.getElementById('taskFormSpeechPa')?.value || '').trim(),
       color: document.getElementById('taskFormColor').value || 'sky',
       enabled: true
     };
@@ -2692,14 +2849,11 @@ class PulseRemindApp {
 
     document.getElementById('settingsProfName').value = prof.name;
     document.getElementById('settingsProfAvatar').value = prof.avatar || '👤';
-    document.getElementById('settingsPinEnabled').checked = prof.pinEnabled !== false;
 
-    // Reset pin fields
-    document.getElementById('settingsOldPin').value = '';
-    document.getElementById('settingsNewPin').value = '';
-    document.getElementById('settingsConfirmPin').value = '';
-    const pinMsg = document.getElementById('settingsPinMsg');
-    if (pinMsg) pinMsg.classList.add('hidden');
+    // Set voice language radio
+    const lang = prof.voiceLang || 'en';
+    const radio = document.querySelector(`input[name="profileVoiceLangRadio"][value="${lang}"]`);
+    if (radio) radio.checked = true;
 
     this.renderProfileSwitchList();
 
@@ -2728,7 +2882,7 @@ class PulseRemindApp {
             <span class="text-2xl">${p.avatar || '👤'}</span>
             <div>
               <div class="font-semibold text-sm text-white">${p.name} ${isCurrent ? '<span class="text-xs text-sky-400 font-normal">(Active)</span>' : ''}</div>
-              <div class="text-xs text-slate-400">PIN: ${p.pinEnabled !== false ? 'Protected' : 'Disabled'}</div>
+              <div class="text-xs text-slate-400">Voice: ${this.getVoiceLangDisplayName(p.voiceLang || 'en')}</div>
             </div>
           </div>
           ${!isCurrent ? `
@@ -2755,7 +2909,7 @@ class PulseRemindApp {
               <span class="text-3xl">${p.avatar || '👤'}</span>
               <div class="text-left">
                 <div class="font-bold text-sm text-white">${p.name} ${isCurrent ? '<span class="text-xs text-sky-400 font-normal">(Active)</span>' : ''}</div>
-                <div class="text-xs text-slate-400">${p.pinEnabled !== false ? '🔒 PIN Protected' : '🔓 No PIN'}</div>
+                <div class="text-xs text-slate-400">🗣️ ${this.getVoiceLangDisplayName(p.voiceLang || 'en')}</div>
               </div>
             </div>
             <div class="text-xs font-semibold ${isCurrent ? 'text-sky-400' : 'text-slate-400'}">
@@ -2787,11 +2941,9 @@ class PulseRemindApp {
       this.closeProfileModal();
       this.closeProfileSwitchModal();
       this.setCurrentProfile(prof);
-      if (prof.pinEnabled) {
-        this.showPinLockScreen();
-      } else {
-        this.unlockApp();
-      }
+      this.unlockApp();
+      this.updateVoiceLangUI();
+      this.showToast(`Switched profile to ${prof.name}`);
     }
   }
 
@@ -2801,62 +2953,48 @@ class PulseRemindApp {
 
     const name = document.getElementById('settingsProfName').value.trim();
     const avatar = document.getElementById('settingsProfAvatar').value.trim();
-    const pinEnabled = document.getElementById('settingsPinEnabled').checked;
 
     if (!name) {
       alert('Profile name cannot be empty');
       return;
     }
 
-    await this.dataStore.updateProfile(prof.id, { name, avatar, pinEnabled });
+    await this.dataStore.updateProfile(prof.id, { name, avatar });
     prof.name = name;
     prof.avatar = avatar;
-    prof.pinEnabled = pinEnabled;
 
     this.updateProfileBadgeUI();
     this.closeProfileModal();
-    alert('Profile preferences updated!');
+    this.showToast('Profile preferences updated!');
   }
 
-  async saveNewPinFromSettings() {
+  async saveProfileVoiceLang() {
     const prof = this.dataStore.currentProfile;
     if (!prof) return;
 
-    const oldPin = document.getElementById('settingsOldPin').value.trim();
-    const newPin = document.getElementById('settingsNewPin').value.trim();
-    const confirmPin = document.getElementById('settingsConfirmPin').value.trim();
-    const pinMsg = document.getElementById('settingsPinMsg');
+    const sel = document.querySelector('input[name="profileVoiceLangRadio"]:checked')?.value || 'en';
+    await this.dataStore.updateProfile(prof.id, { voiceLang: sel });
+    prof.voiceLang = sel;
+    localStorage.setItem('pulseremind_voice_lang', sel);
+    localStorage.setItem('pulseremind_user_chose_voice_lang', 'true');
+    this.selectedVoiceLang = sel;
 
-    if (!newPin || newPin.length < 4) {
-      pinMsg.textContent = 'New PIN must be at least 4 digits.';
-      pinMsg.className = 'text-xs text-red-400 block mt-2';
-      return;
-    }
+    this.updateVoiceLangUI();
+    this.showToast(`Voice language updated to ${this.getVoiceLangDisplayName(sel)}!`);
+    this.previewVoice(sel);
+  }
 
-    if (newPin !== confirmPin) {
-      pinMsg.textContent = 'New PIN and Confirm PIN do not match.';
-      pinMsg.className = 'text-xs text-red-400 block mt-2';
-      return;
-    }
-
-    try {
-      await this.dataStore.changePin(prof.id, oldPin, newPin);
-      pinMsg.textContent = '✅ PIN changed successfully!';
-      pinMsg.className = 'text-xs text-emerald-400 block mt-2';
-      document.getElementById('settingsOldPin').value = '';
-      document.getElementById('settingsNewPin').value = '';
-      document.getElementById('settingsConfirmPin').value = '';
-    } catch (err) {
-      pinMsg.textContent = `❌ ${err.message || 'Error updating PIN'}`;
-      pinMsg.className = 'text-xs text-red-400 block mt-2';
-    }
+  previewSelectedProfileVoice() {
+    const sel = document.querySelector('input[name="profileVoiceLangRadio"]:checked')?.value || 'en';
+    this.previewVoice(sel);
   }
 
   openCreateProfileModal() {
     this.closeProfileModal();
     this.closeProfileSwitchModal();
     document.getElementById('newProfName').value = '';
-    document.getElementById('newProfPin').value = '';
+    const langSelect = document.getElementById('newProfVoiceLang');
+    if (langSelect) langSelect.value = 'en';
     document.getElementById('newProfAvatar').value = '💼';
 
     const modal = document.getElementById('createProfileModal');
@@ -2875,23 +3013,20 @@ class PulseRemindApp {
   async submitCreateProfile(e) {
     e.preventDefault();
     const name = document.getElementById('newProfName').value.trim();
-    const pin = document.getElementById('newProfPin').value.trim();
     const avatar = document.getElementById('newProfAvatar').value.trim() || '👤';
+    const voiceLang = document.getElementById('newProfVoiceLang')?.value || 'en';
 
     if (!name) {
       alert('Please enter a profile name');
-      return;
-    }
-    if (!pin || pin.length < 4) {
-      alert('Please enter a PIN with at least 4 digits');
       return;
     }
 
     const newProf = await this.dataStore.createProfile({
       name,
       avatar,
-      pin,
-      pinEnabled: true
+      voiceLang,
+      pin: '',
+      pinEnabled: false
     });
 
     this.closeCreateProfileModal();
@@ -2899,27 +3034,14 @@ class PulseRemindApp {
     this.closeProfileModal();
     this.setCurrentProfile(newProf);
     this.unlockApp();
-    alert(`Welcome, ${name}! Your profile has been created with customizable reminder tasks.`);
+    this.updateVoiceLangUI();
+    this.showToast(`Welcome, ${name}! Profile created with ${this.getVoiceLangDisplayName(voiceLang)} voice.`);
   }
 
   // ==========================================
   // EVENT BINDINGS
   // ==========================================
   bindEvents() {
-    window.addEventListener('keydown', (e) => {
-      if (!this.isAppLocked) return;
-
-      if (e.key >= '0' && e.key <= '9') {
-        this.handlePinInput(e.key);
-      } else if (e.key === 'Backspace') {
-        this.handlePinBackspace();
-      } else if (e.key === 'Enter') {
-        this.submitPin();
-      } else if (e.key === 'Escape') {
-        this.handlePinClear();
-      }
-    });
-
     const audioBtn = document.getElementById('audioStatusBtn');
     if (audioBtn) {
       audioBtn.addEventListener('click', async () => {
@@ -2949,13 +3071,6 @@ class PulseRemindApp {
       volSlider.addEventListener('input', (e) => {
         const val = e.target.value / 100;
         this.sound.setVolume(val);
-      });
-    }
-
-    const lockBtn = document.getElementById('lockAppNavBtn');
-    if (lockBtn) {
-      lockBtn.addEventListener('click', () => {
-        this.showPinLockScreen();
       });
     }
 

@@ -19,7 +19,8 @@
     "completedCountToday": 0,
     "lastCompletedAt": null,
     "lastTriggeredAt": null,
-    "snoozedUntil": null
+    "snoozedUntil": null,
+    "speechTextPa": "ਪਾਣੀ ਪੀਣ ਦਾ ਸਮਾਂ ਹੋ ਗਿਆ ਹੈ! ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਗਿਲਾਸ ਤਾਜ਼ਾ ਪਾਣੀ ਪੀਓ ਅਤੇ ਤੰਦਰੁਸਤ ਰਹੋ।"
   },
   {
     "id": "task-walk",
@@ -41,7 +42,8 @@
     "completedCountToday": 0,
     "lastCompletedAt": null,
     "lastTriggeredAt": null,
-    "snoozedUntil": null
+    "snoozedUntil": null,
+    "speechTextPa": "ਉੱਠਣ ਅਤੇ ਟਹਿਲਣ ਦਾ ਸਮਾਂ ਹੋ ਗਿਆ ਹੈ! ਬਲੱਡ ਸਰਕੂਲੇਸ਼ਨ ਵਧੀਆ ਰੱਖਣ ਲਈ ਦੋ ਮਿੰਟ ਲਈ ਸੈਰ ਕਰੋ।"
   },
   {
     "id": "task-stretch",
@@ -63,6 +65,7 @@
     "completedCountToday": 0,
     "lastCompletedAt": null,
     "lastTriggeredAt": null,
-    "snoozedUntil": null
+    "snoozedUntil": null,
+    "speechTextPa": "ਸਰੀਰ ਨੂੰ ਸਟ੍ਰੈਚ ਕਰਨ ਦਾ ਸਮਾਂ ਹੋ ਗਿਆ ਹੈ! ਆਪਣੇ ਮੋਢਿਆਂ, ਗਰਦਨ ਅਤੇ ਮਾਸਪੇਸ਼ੀਆਂ ਨੂੰ ਆਰਾਮ ਦਿਓ।"
   }
 ]
